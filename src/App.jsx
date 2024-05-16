@@ -37,7 +37,7 @@ function App() {
     formData.append('image', image);
 
     try {
-      const response = await fetch('http://149.36.1.177:5000/upload', {
+      const response = await fetch('https://149.36.1.177:5000/upload', {
         method: 'POST',
         body: formData,
       });
@@ -55,12 +55,12 @@ function App() {
 
   const checkStatus = async (taskId) => {
     let intervalId = setInterval(async () => {
-      const response = await fetch(`http://149.36.1.177:5000/status/${taskId}`);
+      const response = await fetch(`https://149.36.1.177:5000/status/${taskId}`);
       const data = await response.json();
       setStatus(data.state);
 
       if (data.state === 'SUCCESS') {
-        let resultUrl = `http://149.36.1.177:5000/result/${taskId}`;
+        let resultUrl = `https://149.36.1.177:5000/result/${taskId}`;
         setResultImageUrl(resultUrl); 
         pixelateImageLegacy(resultUrl, 5, (alturas) => {
           console.log(alturas);
