@@ -1,12 +1,3 @@
-/**
- * función de redimensionamiento y compresión
- * @param {*} file 
- * @param {*} maxWidth 
- * @param {*} maxHeight 
- * @param {*} quality 
- * @param {*} callback 
- */
-
 export function resizeAndCompressImage(file, maxWidth, maxHeight, quality, callback) {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -34,7 +25,14 @@ export function resizeAndCompressImage(file, maxWidth, maxHeight, quality, callb
             ctx.drawImage(img, 0, 0, width, height);
 
             // Compresión de la imagen
-            canvas.toBlob(callback, 'image/jpeg', quality);
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    const newFile = new File([blob], file.name, { type: blob.type });
+                    callback(newFile);
+                } else {
+                    console.error('Error al crear el Blob de la imagen');
+                }
+            }, 'image/jpeg', quality);
         };
         img.src = e.target.result;
     };

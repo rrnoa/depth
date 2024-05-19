@@ -27,17 +27,18 @@ function App() {
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     const maxWidth = 768;
-    const maxHeight = 768;
-    const quality = 0.7; // Compresión al 70%
-    resizeAndCompressImage(file, maxWidth, maxHeight, quality, async (compressedFile) => {
-        setImage(compressedFile);
-        const imgUrl = URL.createObjectURL(compressedFile);
-        setImageUrl(imgUrl);  // Crear una URL temporal para la imagen original
-        const PixelOrigen = await pixelateImg(imgUrl);
-        setAllColors(PixelOrigen.allColors);
-        setPixelImageUrl(PixelOrigen.imageURL);
+		const maxHeight = 768;
+		const quality = 0.7; // Compresión al 70%
+    resizeAndCompressImage(file, maxWidth, maxHeight, quality, async (compressedBlob)=>{
+      setImage(compressedBlob);
+      const imgUrl = URL.createObjectURL(compressedBlob);
+      setImageUrl(imgUrl);  // Crear una URL temporal para la imagen original
+      const PixelOrigen = await pixelateImg(imgUrl);
+      setAllColors(PixelOrigen.allColors);
+      setPixelImageUrl(PixelOrigen.imageURL);
     });
-};
+
+  };
 
   const handleMapUpload = async (event) => {
     const file = event.target.files[0];
@@ -84,36 +85,27 @@ function App() {
 
   const checkStatus = async (taskId) => {
     let intervalId = setInterval(async () => {
-        try {
-            const response = await fetch(`https://149.36.1.177:5000/status/${taskId}`);
-            if (!response.ok) {
-                throw new Error(`Status check failed: ${response.statusText}`);
-            }
-            const data = await response.json();
-            setStatus(data.state);
+      const response = await fetch(`https://149.36.1.177:5000/status/${taskId}`);
+      const data = await response.json();
+      setStatus(data.state);
 
-            if (data.state === 'SUCCESS') {
-                let resultUrl = `https://149.36.1.177:5000/result/${taskId}`;
-                setResultImageUrl(resultUrl);
-                pixelateImageLegacy(resultUrl, 1, (alturas, xBlocks, yBlocks, pixelDepth) => {
-                    console.log("callback:", xBlocks, yBlocks)
-                    setHeights(alturas);
-                    setPixelDepthUrl(pixelDepth);
-                    setXBlocks(xBlocks);
-                    setYBlocks(yBlocks);
-                });
-                clearInterval(intervalId);
-            } else if (data.state === 'FAILURE') {
-                setStatus('FAILED');
-                clearInterval(intervalId);
-            }
-        } catch (error) {
-            console.error('Error checking status:', error);
-            clearInterval(intervalId);
-        }
+      if (data.state === 'SUCCESS') {
+        let resultUrl = `https://149.36.1.177:5000/result/${taskId}`;
+        setResultImageUrl(resultUrl); 
+        pixelateImageLegacy(resultUrl, 1, (alturas, xBlocks, yBlocks, pixelDepth) => {
+          console.log("callback:", xBlocks, yBlocks)
+          setHeights(alturas);
+          setPixelDepthUrl(pixelDepth);
+          setXBlocks(xBlocks);
+          setYBlocks(yBlocks);
+        }); 
+        clearInterval(intervalId);
+      } else if (data.state === 'FAILURE') {
+        setStatus('FAILED');
+        clearInterval(intervalId);
+      }
     }, 5000); // Consultar cada 5 segundos
-};
-
+  };
 
 
 
