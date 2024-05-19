@@ -62,19 +62,17 @@ function initThreeJS( canvasRef, heights, allColors, xBlocks, yBlocks ) {
         });   
     
         let material;
+   
+        for(let j = 0; j < yBlocks; j++) {
+            for(let i = 0; i < xBlocks; i++) {
 
-        console.log("blocks:", xBlocks,yBlocks);
-        console.log("normalizedHeights",normalizedHeights)
-    
-        for(let i = 0; i < xBlocks; i++) {
-            for(let j = 0; j < yBlocks; j++) {
-        
                 //const height = borderPixels[j * xBlocks + i] == 1? colorHeightMap[j * xBlocks + i] - 0.5 : colorHeightMap[j * xBlocks + i];
                 //const height = 255 - heights[j * xBlocks + i]
                 const height = normalizedHeights[j * xBlocks + i]
                             
                 const geometry = new THREE.BoxGeometry(blockSizeInInches, blockSizeInInches, height);                    
-                //const geometry = new THREE.BoxGeometry(blockSizeInInches, blockSizeInInches, 1);                    
+                //const geometry = new THREE.BoxGeometry(blockSizeInInches, blockSizeInInches, 1);    
+                //allColors = null;                
                 if(allColors) {
                     const color = `rgb(${allColors[j * xBlocks + i].join(",")})`;
                     material = new THREE.MeshStandardMaterial({ color: color });

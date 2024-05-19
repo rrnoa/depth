@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import * as THREE from 'three';
+
 import './App.css'
 import initThreeJS from './components/Init3d';
 import pixelateImg from "./lib/pixelate";
 import ToggleVMState from './components/ChangeVMState';
+import { resizeAndCompressImage } from './lib/ResizeImg';
+import { pixelateImageLegacy } from './lib/pixelateLegazy';
+import { Paint3d } from './components/Paint3d';
 
 function App() {
   const [image, setImage] = useState(null);
@@ -14,19 +19,44 @@ function App() {
   const [pixelDepthUrl, setPixelDepthUrl] = useState(null);
   const [heights, setHeights] = useState([]);
   const [allColors, setAllColors] = useState([]);
+  const [xBlocks, setXBlocks] = useState(0);
+  const [yBlocks, setYBlocks] = useState(0);
 
-  const xBlocks = 90;
-  const yBlocks = 90 ;
-
-  const canvasRef = useRef(null);
-
+  const sceneRef = useRef(new THREE.Scene());
+  const renderRef =  useRef(new THREE.WebGLRenderer({ antialias: true}));
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
-    setImage(file);
-    setImageUrl(URL.createObjectURL(file));  // Crear una URL temporal para la imagen original
-    const PixelOrigen = await pixelateImg(URL.createObjectURL(file), xBlocks, yBlocks);
-    setAllColors(PixelOrigen.allColors);
-    setPixelImageUrl(PixelOrigen.imageURL)
+    const maxWidth = 768;
+		const maxHeight = 768;
+		const quality = 0.7; // Compresión al 70%
+    resizeAndCompressImage(file, maxWidth, maxHeight, quality, async (compressedBlob)=>{
+      setImage(compressedBlob);
+      const imgUrl = URL.createObjectURL(compressedBlob);
+      setImageUrl(imgUrl);  // Crear una URL temporal para la imagen original
+      const PixelOrigen = await pixelateImg(imgUrl);
+      setAllColors(PixelOrigen.allColors);
+      setPixelImageUrl(PixelOrigen.imageURL);
+    });
+
+  };
+
+  const handleMapUpload = async (event) => {
+    const file = event.target.files[0];
+    const maxWidth = 768;
+		const maxHeight = 768;
+		const quality = 0.7; // Compresión al 70%
+    resizeAndCompressImage(file, maxWidth, maxHeight, quality, (compressedBlob) => {
+      const fileUrl = URL.createObjectURL(compressedBlob);
+      setResultImageUrl(fileUrl);  // Crear una URL temporal para la imagen original
+      pixelateImageLegacy(fileUrl, 1, (alturas, xBlocks, yBlocks, pixelDepth) => {
+        console.log("callback:", xBlocks, yBlocks)
+        setHeights(alturas);
+        setPixelDepthUrl(pixelDepth);
+        setXBlocks(xBlocks);
+        setYBlocks(yBlocks);
+      }); 
+    });
+      
   };
 
   const handleSubmit = async (event) => {
@@ -62,11 +92,13 @@ function App() {
       if (data.state === 'SUCCESS') {
         let resultUrl = `https://149.36.1.177:5000/result/${taskId}`;
         setResultImageUrl(resultUrl); 
-        pixelateImageLegacy(resultUrl, 5, (alturas) => {
-          console.log(alturas);
+        pixelateImageLegacy(fileUrl, 1, (alturas, xBlocks, yBlocks, pixelDepth) => {
+          console.log("callback:", xBlocks, yBlocks)
           setHeights(alturas);
-          initThreeJS(canvasRef.current, alturas, allColors, xBlocks, yBlocks);
-        });       
+          setPixelDepthUrl(pixelDepth);
+          setXBlocks(xBlocks);
+          setYBlocks(yBlocks);
+        }); 
         clearInterval(intervalId);
       } else if (data.state === 'FAILURE') {
         setStatus('FAILED');
@@ -85,82 +117,57 @@ function App() {
       </div>
       <form onSubmit={handleSubmit}>
         <input type="file" accept="image/*" onChange={handleImageUpload} />
-        <button type="submit">Submit</button>
+        {
+          imageUrl && (
+            <div style={{border: '1px solid white'}}>
+            <button type="submit">Generate Depth Map</button>
+            <span style={{padding: '50px'}}>Ó</span>
+            <input type="file" accept="image/*" onChange={handleMapUpload} />
+            </div>
+            
+          )
+        }
       </form>
       {status && <p>Status: {status}</p>}
       <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '20px' }}>
         {imageUrl && (
           <div>
             <h2>Original Image</h2>
-            <img src={imageUrl} alt="Original" style={{ maxWidth: '300px', maxHeight: '300px' }} />
+            <img src={imageUrl} alt="Original" style={{ maxWidth: '200px', maxHeight: '200px' }} />
           </div>
         )}
         {pixelImageUrl && (
           <div>
             <h2>Pixel Image</h2>
-            <img src={pixelImageUrl} alt="Original" style={{ maxWidth: '300px', maxHeight: '300px' }} />
+            <img src={pixelImageUrl} alt="Original" style={{ maxWidth: '200px', maxHeight: '200px' }} />
           </div>
         )}
         {resultImageUrl && (
           <div>
             <h2>Inference Result</h2>
-            <img src={resultImageUrl} alt="Result" style={{ maxWidth: '300px', maxHeight: '300px' }} />
+            <img src={resultImageUrl} alt="Result" style={{ maxWidth: '200px', maxHeight: '200px' }} />
           </div>
         )}        
+        {pixelDepthUrl && (
+          <div>
+            <h2>Result Pixelated</h2>
+            <img src={pixelDepthUrl} alt="Result" style={{ maxWidth: '200px', maxHeight: '200px' }} />
+          </div>
+        )}     
       </div>
       <div>
         <h2>Relieve</h2>
-        <div ref={canvasRef}></div>
+        {pixelDepthUrl && (
+        <Paint3d 
+          sceneRef = {sceneRef.current}
+          renderRef = {renderRef.current}
+          heights = {heights}
+          allColors = {allColors}
+          xBlocks = {xBlocks}
+          yBlocks = {yBlocks}
+        ></Paint3d>)}
       </div>
     </div>
   );
 }
-
-function pixelateImageLegacy(sourceImage, pixelSize, callback) {
-  const img = new Image();
-  img.crossOrigin = 'Anonymous'; // Esto es útil si la imagen está en un dominio diferente
-  img.src = sourceImage;
-
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    // Ajustar el tamaño del canvas al tamaño reducido
-    const newWidth = img.width / pixelSize;
-    const newHeight = img.height / pixelSize;
-    canvas.width = newWidth;
-    canvas.height = newHeight;
-
-    // Dibujar la imagen reducida en el canvas
-    ctx.drawImage(img, 0, 0, newWidth, newHeight);
-
-    // Crear un segundo canvas para escalar de vuelta a tamaño original
-    const canvasGrande = document.createElement('canvas');
-    const ctxGrande = canvasGrande.getContext('2d');
-    canvasGrande.width = img.width;
-    canvasGrande.height = img.height;
-    ctxGrande.imageSmoothingEnabled = false; // Deshabilitar suavizado para efecto pixelado
-
-    // Dibujar la imagen pixelada en el canvas grande
-    ctxGrande.drawImage(canvas, 0, 0, newWidth, newHeight, 0, 0, img.width, img.height);
-
-    // Convertir el canvas a una URL de imagen
-    const pixelatedImageUrl = canvasGrande.toDataURL();
-
-    // Extraer los datos de píxeles de la imagen reducida
-    const imageData = ctx.getImageData(0, 0, newWidth, newHeight);
-    const alturas = [];
-    for (let i = 0; i < imageData.data.length; i += 4) {
-      // Obtener solo los valores RGB de cada píxel
-      alturas.push(imageData.data[i]);
-    }
-    callback(alturas, pixelatedImageUrl);
-  };
-
-  img.onerror = (error) => {
-    console.error('Error loading image:', error);
-    callback(null, null, error);
-  };
-}
-
 export default App
