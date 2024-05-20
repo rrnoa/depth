@@ -2,18 +2,21 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import GUI from 'lil-gui';
 import { configCamera, configLights, configRender, configControls } from './three-setup';
+import { FilterLogaritm } from '../lib/FilterLogaritm';
 
 export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlocks }) => {
-    const [blockSizeInInches, setBlockSizeInInches] = useState(0.0254);
-    const [maxScaleFactor, setMaxScaleFactor] = useState(0.254);
+    const [blockSizeInInches, setBlockSizeInInches] = useState(1);
+    const [maxScaleFactor, setMaxScaleFactor] = useState(10);
+    const [applyLogaritm, setApplyLogaritm] = useState(false);
     const canvasRef = useRef(null);
     const guiRef = useRef(null);
 
     useEffect(() => {
         if (!guiRef.current) {
             guiRef.current = new GUI();
-            const blockSizeController = guiRef.current.add({ blockSizeInInches }, 'blockSizeInInches', 0.01, 0.0762);
-            const maxScaleFactorController = guiRef.current.add({ maxScaleFactor }, 'maxScaleFactor', 0.1, 2);
+            const blockSizeController = guiRef.current.add({ blockSizeInInches }, 'blockSizeInInches', 0.5, 3, 0.5);
+            const maxScaleFactorController = guiRef.current.add({ maxScaleFactor }, 'maxScaleFactor', 1, 50, 1);
+            const applyLogaritmController = guiRef.current.add({ applyLogaritm }, 'applyLogaritm');
             guiRef.current.add({ applyChanges: () => applyChanges(blockSizeController, maxScaleFactorController) }, 'applyChanges');
         }
 
@@ -62,11 +65,17 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
     };
 
     return (
-        <div ref={canvasRef} style={{ width: '100%', height: '100%' }}>Paint3d</div>
+        <>
+            <div style={{position: 'fixed', top: '10px'}}>Dimensiones: {xBlocks}x{yBlocks}</div>
+            <div ref={canvasRef} style={{ width: '100%', height: '100%' }}>Paint3d</div>
+        </>
+       
     );
 };
 
 const paintRelive = (scene, heights, allColors, xBlocks, yBlocks, blockSizeInInches, maxScaleFactor) => {
+    blockSizeInInches = blockSizeInInches * 0.0254;
+    maxScaleFactor = maxScaleFactor * 0.0254;
     const maxHeight = 0.254; // Establece un tope máximo de altura en pulgadas
     let mayor = 0;
     const normalizedHeights = heights.map(height => {
@@ -74,16 +83,15 @@ const paintRelive = (scene, heights, allColors, xBlocks, yBlocks, blockSizeInInc
         return adjustedHeight;
     });
 
-    const normalizedHeightsExp = normalizedHeights.map(height => {
-        let adjustedHeight = Math.pow(height, 0.1);
-        return adjustedHeight;
-    });
+    //FilterLogaritm(heights, 0, maxHeight);
+    console.log(heights);   
 
     let material;
 
     for (let j = 0; j < yBlocks; j++) {
         for (let i = 0; i < xBlocks; i++) {
             const height = normalizedHeights[j * xBlocks + i];
+            //const height = maxHeight - heights[j * xBlocks + i];
             const geometry = new THREE.BoxGeometry(blockSizeInInches, blockSizeInInches, height);
             if (allColors) {
                 const color = `rgb(${allColors[j * xBlocks + i].join(",")})`;
