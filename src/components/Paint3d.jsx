@@ -17,7 +17,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
             const blockSizeController = guiRef.current.add({ blockSizeInInches }, 'blockSizeInInches', 0.5, 3, 0.5);
             const maxScaleFactorController = guiRef.current.add({ maxScaleFactor }, 'maxScaleFactor', 1, 50, 1);
             const applyLogaritmController = guiRef.current.add({ applyLogaritm }, 'applyLogaritm');
-            guiRef.current.add({ applyChanges: () => applyChanges(blockSizeController, maxScaleFactorController) }, 'applyChanges');
+            guiRef.current.add({ applyChanges: () => applyChanges(blockSizeController, maxScaleFactorController, applyLogaritmController) }, 'applyChanges');
         }
 
         console.log("----------------------useEffect Scene3d----------------------------");
@@ -46,7 +46,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
 
         animate();
 
-        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, blockSizeInInches, maxScaleFactor);
+        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, blockSizeInInches, maxScaleFactor, applyLogaritm);
 
         return () => {
             console.log("desmontando");
@@ -56,12 +56,14 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
                 guiRef.current = null;
             }
         };
-    }, [heights, blockSizeInInches, maxScaleFactor]);
+    }, [heights, blockSizeInInches, maxScaleFactor, applyLogaritm]);
 
-    const applyChanges = (blockSizeController, maxScaleFactorController) => {
+    const applyChanges = (blockSizeController, maxScaleFactorController, applyLogaritmController) => {
         console.log("aplicando cambios...");
         setBlockSizeInInches(blockSizeController.getValue());
         setMaxScaleFactor(maxScaleFactorController.getValue());
+        setApplyLogaritm(applyLogaritmController.getValue());
+        console.log(applyLogaritmController.getValue());
     };
 
     return (
@@ -73,25 +75,33 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
     );
 };
 
-const paintRelive = (scene, heights, allColors, xBlocks, yBlocks, blockSizeInInches, maxScaleFactor) => {
+const paintRelive = (scene, heights, allColors, xBlocks, yBlocks, blockSizeInInches, maxScaleFactor, applyLogaritm) => {
     blockSizeInInches = blockSizeInInches * 0.0254;
     maxScaleFactor = maxScaleFactor * 0.0254;
     const maxHeight = 0.254; // Establece un tope máximo de altura en pulgadas
     let mayor = 0;
-    const normalizedHeights = heights.map(height => {
-        let adjustedHeight = maxScaleFactor - (height * (maxScaleFactor / 255));
-        return adjustedHeight;
-    });
+    let depthMin = Math.min(...heights);
+    let depthMax = Math.max(...heights);
 
-    //FilterLogaritm(heights, 0, maxHeight);
-    console.log(heights);   
+    if(applyLogaritm){
+        FilterLogaritm(heights, 0, maxScaleFactor);
+    } else {
+        depthMin = Math.min(...heights);
+        depthMax = Math.max(...heights);
+        for (let i = 0; i < heights.length; i++) {
+            heights[i] = maxScaleFactor * (heights[i] - depthMin) / (depthMax - depthMin);
+        }
+    }   
+
 
     let material;
 
+    console.log("Max minimo",Math.min(...heights), Math.max(...heights)) ;
+
+
     for (let j = 0; j < yBlocks; j++) {
         for (let i = 0; i < xBlocks; i++) {
-            const height = normalizedHeights[j * xBlocks + i];
-            //const height = maxHeight - heights[j * xBlocks + i];
+            const height = applyLogaritm ? maxScaleFactor - heights[j * xBlocks + i]: maxScaleFactor - heights[j * xBlocks + i];
             const geometry = new THREE.BoxGeometry(blockSizeInInches, blockSizeInInches, height);
             if (allColors) {
                 const color = `rgb(${allColors[j * xBlocks + i].join(",")})`;
