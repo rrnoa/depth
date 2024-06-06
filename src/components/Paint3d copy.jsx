@@ -9,7 +9,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
     const [blockSizeInInches, setBlockSizeInInches] = useState(1);
     const [maxScaleFactor, setMaxScaleFactor] = useState(10);
     const [applyLogaritm, setApplyLogaritm] = useState(false);
-    const [applyScale, setApplyScale] = useState(false);
+    const [applyScale, setApplyScale] = useState(true);
     const canvasRef = useRef(null);
     const guiRef = useRef(null);
 
@@ -91,7 +91,6 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, blockSizeInInc
     let depthMin = Math.min(...heights);
     let depthMax = Math.max(...heights);  
 
-    console.log("----------------------",depthMin,depthMax)
 
     if(applyLogaritm) {
         console.log("aplicando logaritmo")
@@ -106,12 +105,28 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, blockSizeInInc
     } else {
         console.log("Aplicando Escala normal")
         for (let index = 0; index < heights.length; index++) {
-            heights[index] = (depthMax - heights[index]) * 0.004;
+            heights[index] = 1 - heights[index];
         }
     }
 
     const scaledMaxHeight = Math.max(...heights);//maxima altura despues de scalada
     const scaledMinHeight = Math.min(...heights);//minima altura despues de scalada
+
+    const scaledRealHeight = scaledMaxHeight - scaledMinHeight; //la distancia entre el mayor y el menor
+
+    console.log("scaledRealHeight->",scaledRealHeight);
+
+    const cantCapas = scaledRealHeight / steps; //obtengo la cantidad de capas 
+
+    //crear el arreglo de limites de capas, 1 + cantidad de capas
+    let limitesCapas= [];
+    for (let index = 0; index <= scaledRealHeight; index += steps) {
+        limitesCapas.push(index);
+    }
+
+    const delta = 0.001;
+    heights = reemplazarPosiciones(heights);
+
     let material;
 
     console.log("Max minimo", Math.min(...heights), Math.max(...heights));
