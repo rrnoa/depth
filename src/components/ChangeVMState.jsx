@@ -87,14 +87,14 @@ const ToggleVMState = () => {
   };
 
   return (
-    <div>
-      <input
-        type="text"
-        placeholder="ID de la Máquina Virtual"
-        value={vmId}
-        onChange={(e) => setVmId(e.target.value)}
-      />
-      <div style={{display: 'flex', gap: '10px'}}>
+    <div>      
+      <div style={{display: 'flex', flexDirection: 'column',gap: '10px'}}>
+        <input
+          type="text"
+          placeholder="ID de la Máquina Virtual"
+          value={vmId}
+          onChange={(e) => setVmId(e.target.value)}
+        />
         <button onClick={toggleVMState}>
             {vmState === 'HIBERNATED' ? 'Restaurar VM' : 'Invernar VM'}
         </button>

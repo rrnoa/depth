@@ -1,6 +1,5 @@
-export function pixelateImageLegacy(sourceImage, blockSizeInch = 1, callback) {
-    const pixelXInch = 10; //Vamos a asumir que 1 pugada son 10 pixeles
-    const blockPixelSize = pixelXInch * blockSizeInch;
+export function pixelateImageLegacy(sourceImage, dpi, blockSizeInch = 1, callback) {
+    const blockPixelSize = blockSizeInch * dpi;
 
     const img = new Image();
     img.crossOrigin = 'Anonymous'; // Esto es útil si la imagen está en un dominio diferente
@@ -10,9 +9,12 @@ export function pixelateImageLegacy(sourceImage, blockSizeInch = 1, callback) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');  
 
+      console.log("DImensiones mapa de profundiad Original",img.width, img.height)
       // Ajustar el tamaño del canvas al tamaño reducido
       const newWidth = Math.floor(img.width / blockPixelSize); 
       const newHeight = Math.floor(img.height / blockPixelSize);
+
+      console.log("DImensiones mapa de profundiad pequeño", newWidth, newHeight)
   
       canvas.width = newWidth;
       canvas.height = newHeight;
