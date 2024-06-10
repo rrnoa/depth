@@ -76,7 +76,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
 
     return (
         <>
-            <div style={{position: 'fixed', top: '42px', color:'black'}}>Dimensiones: {xBlocks}x{yBlocks}</div>
+            <div style={{position: 'fixed', top: '42px', color:'black'}}>Dimensiones: {xBlocks*blockSizeInInches}x{yBlocks*blockSizeInInches}---{blockSizeInInches}</div>
             <div ref={canvasRef} style={{ width: '100%', height: '100%'}}></div>
         </>
        
