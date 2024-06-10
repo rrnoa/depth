@@ -9,6 +9,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
     const [applyLogaritm, setApplyLogaritm] = useState(false);
     const [applyScale, setApplyScale] = useState(true);
     const [applyInch, setApplyInch] = useState(true);
+    const [showGreen, setShowGreen] = useState(false);
     const [cutHeight, setCutHeight] = useState(0.65);
     const [delta, setDelta] = useState(0.5);
     const canvasRef = useRef(null);
@@ -22,7 +23,8 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
             const applyInchController = guiRef.current.add({ applyInch }, 'applyInch');
             const deltaController = guiRef.current.add({ delta }, 'delta', [0.25, 0.5, 1]);
             const applyScaleController = guiRef.current.add({ applyScale }, 'applyScale');
-            guiRef.current.add({ applyChanges: () => applyChanges(heightCutController, maxScaleFactorController, applyScaleController, deltaController, applyInchController) }, 'applyChanges');
+            const showGreenController = guiRef.current.add({ showGreen }, 'showGreen');
+            guiRef.current.add({ applyChanges: () => applyChanges(heightCutController, maxScaleFactorController, applyScaleController, deltaController, applyInchController, showGreenController) }, 'applyChanges');
         }
 
         /* const width = window.innerWidth;
@@ -53,7 +55,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
 
         animate();
 
-        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, cutHeight, blockSizeInInches, maxScaleFactor, applyScale, delta, applyInch);
+        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, cutHeight, blockSizeInInches, maxScaleFactor, applyScale, delta, applyInch, showGreen);
 
         return () => {
             console.log("desmontando");
@@ -63,15 +65,16 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
                 guiRef.current = null;
             }
         };
-    }, [heights, cutHeight, maxScaleFactor, applyLogaritm, applyScale, delta, applyInch]);
+    }, [heights, cutHeight, maxScaleFactor, applyLogaritm, applyScale, delta, applyInch, showGreen]);
 
-    const applyChanges = (heightCutController, maxScaleFactorController, applyScaleController, deltaController, applyInchController) => {
+    const applyChanges = (heightCutController, maxScaleFactorController, applyScaleController, deltaController, applyInchController, showGreenController) => {
         console.log("aplicando cambios...");
         setCutHeight(heightCutController.getValue());
         setMaxScaleFactor(maxScaleFactorController.getValue());
         setApplyScale(applyScaleController.getValue());
         setDelta(deltaController.getValue());
         setApplyInch(applyInchController.getValue());
+        setShowGreen(showGreenController.getValue());
     };
 
     return (
@@ -83,7 +86,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
     );
 };
 
-const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blockSizeInInches, maxScaleFactor, applyScale, delta, applyInch) => {
+const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blockSizeInInches, maxScaleFactor, applyScale, delta, applyInch, showGreen) => {
     blockSizeInInches = blockSizeInInches * 0.0254;
     maxScaleFactor = maxScaleFactor * 0.0254;
     delta = delta * 0.0254;
@@ -145,13 +148,17 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blo
             scene.add(cube);
         }
     }
-    const refgeometry = new THREE.BoxGeometry(0.0254, 0.0254, 0.254);
-    const refMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
-    const refMesh = new THREE.Mesh(refgeometry, refMaterial);
+    if(showGreen) {
+        const refgeometry = new THREE.BoxGeometry(0.0254, 0.0254, 0.254);
+        const refMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+        const refMesh = new THREE.Mesh(refgeometry, refMaterial);
+        refMesh.translateZ(0.254/2);
+        scene.add(refMesh);
+    }
+    
     const axesHelper = new THREE.AxesHelper( 1 );
     //scene.add( axesHelper );
-    refMesh.translateZ(0.254/2);
-    scene.add(refMesh);
+   
 };
 
 
