@@ -2,15 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import GUI from 'lil-gui';
 import { configCamera, configLights, configRender, configControls } from './three-setup';
-import { FilterLogaritm } from '../lib/FilterLogaritm';
+import { escalarPulgadas, smoothHeightMap } from '../lib/Filters';
 
-
-export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlocks }) => {
-    const blockSizeInInches = 1;
+export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlocks, blockSizeInInches }) => {
     const [maxScaleFactor, setMaxScaleFactor] = useState(10);
     const [applyLogaritm, setApplyLogaritm] = useState(false);
     const [applyScale, setApplyScale] = useState(true);
+    const [applyInch, setApplyInch] = useState(true);
     const [cutHeight, setCutHeight] = useState(0.65);
+    const [delta, setDelta] = useState(0.5);
     const canvasRef = useRef(null);
     const guiRef = useRef(null);
 
@@ -19,12 +19,11 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
             guiRef.current = new GUI();
             const heightCutController = guiRef.current.add({ cutHeight }, 'cutHeight', 0, 1, 0.01);
             const maxScaleFactorController = guiRef.current.add({ maxScaleFactor }, 'maxScaleFactor', 1, 50, 1);
-            const applyLogaritmController = guiRef.current.add({ applyLogaritm }, 'applyLogaritm');
+            const applyInchController = guiRef.current.add({ applyInch }, 'applyInch');
+            const deltaController = guiRef.current.add({ delta }, 'delta', [0.25, 0.5, 1]);
             const applyScaleController = guiRef.current.add({ applyScale }, 'applyScale');
-            guiRef.current.add({ applyChanges: () => applyChanges(heightCutController, maxScaleFactorController, applyLogaritmController, applyScaleController) }, 'applyChanges');
+            guiRef.current.add({ applyChanges: () => applyChanges(heightCutController, maxScaleFactorController, applyScaleController, deltaController, applyInchController) }, 'applyChanges');
         }
-
-        console.log("----------------------useEffect Scene3d----------------------------");
 
         /* const width = window.innerWidth;
         const height = window.innerHeight; */
@@ -54,7 +53,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
 
         animate();
 
-        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, cutHeight, blockSizeInInches, maxScaleFactor, applyLogaritm, applyScale);
+        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, cutHeight, blockSizeInInches, maxScaleFactor, applyScale, delta, applyInch);
 
         return () => {
             console.log("desmontando");
@@ -64,15 +63,15 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
                 guiRef.current = null;
             }
         };
-    }, [heights, cutHeight, maxScaleFactor, applyLogaritm, applyScale]);
+    }, [heights, cutHeight, maxScaleFactor, applyLogaritm, applyScale, delta, applyInch]);
 
-    const applyChanges = (heightCutController, maxScaleFactorController, applyLogaritmController, applyScaleController) => {
+    const applyChanges = (heightCutController, maxScaleFactorController, applyScaleController, deltaController, applyInchController) => {
         console.log("aplicando cambios...");
         setCutHeight(heightCutController.getValue());
         setMaxScaleFactor(maxScaleFactorController.getValue());
-        setApplyLogaritm(applyLogaritmController.getValue());
         setApplyScale(applyScaleController.getValue());
-        console.log(applyScaleController.getValue());
+        setDelta(deltaController.getValue());
+        setApplyInch(applyInchController.getValue());
     };
 
     return (
@@ -84,15 +83,14 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
     );
 };
 
-const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blockSizeInInches, maxScaleFactor, applyLogaritm, applyScale) => {
+const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blockSizeInInches, maxScaleFactor, applyScale, delta, applyInch) => {
     blockSizeInInches = blockSizeInInches * 0.0254;
     maxScaleFactor = maxScaleFactor * 0.0254;
+    delta = delta * 0.0254;
 
     let heights = [...alturas];//copiar el arreglo de alturas
     let depthMin = Math.min(...heights);
     let depthMax = Math.max(...heights);  
-
-    console.log("----------------------",depthMin,depthMax)
 
     //invertir alturas 
 
@@ -104,17 +102,10 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blo
     for (let index = 0; index < heights.length; index++) {
         if ( heights[index] < cutHeight * depthMax) {
             heights[index] = cutHeight * depthMax;
-        } else {
-           console.log("Umbral")
-        }
-        
-       
+        }       
     }
 
-    if(applyLogaritm) {
-        console.log("aplicando logaritmo")
-        FilterLogaritm(heights, 0, maxScaleFactor);
-    } else if(applyScale) {
+    if(applyScale) {
         console.log("aplicando Escala")
         depthMin = Math.min(...heights);
         depthMax = Math.max(...heights);
@@ -127,12 +118,13 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blo
             heights[index] = (depthMax - heights[index]) * 0.004;
         }
     }
+    heights = smoothHeightMap(heights, xBlocks, yBlocks, 0.0254)
+    
+    if(applyInch) heights = escalarPulgadas(heights, maxScaleFactor, delta);
 
-    const scaledMaxHeight = Math.max(...heights);//maxima altura despues de scalada
-    const scaledMinHeight = Math.min(...heights);//minima altura despues de scalada
     let material;
 
-    console.log("Max minimo", Math.min(...heights), Math.max(...heights));
+    console.log(Math.min(...heights), Math.max(...heights), heights.length, xBlocks, yBlocks);
 
     for (let j = 0; j < yBlocks; j++) {
         for (let i = 0; i < xBlocks; i++) {
@@ -158,7 +150,6 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blo
     const refMesh = new THREE.Mesh(refgeometry, refMaterial);
     const axesHelper = new THREE.AxesHelper( 1 );
     //scene.add( axesHelper );
-    console.log("depthMin-------------",depthMin)
     refMesh.translateZ(0.254/2);
     scene.add(refMesh);
 };

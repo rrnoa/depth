@@ -1,10 +1,13 @@
 import UPNG from 'upng-js';
 
-// `pixelImageUrl` es importante para que coincidan los tamaños
-
-export async function pixelate16(buffer, pixelImageUrl, blockSizeInch = 1, dpi, numBlocksX, numBlocksY, callback) {
+export async function pixelate16(buffer, pixelImageUrl, blockSize, numBlocksX, numBlocksY, startX, startY, callback) {
   const pxImg = new Image();
   pxImg.src = pixelImageUrl;
+
+  /* numBlocksX = numBlocksX / blockSize;
+  numBlocksY = numBlocksY / blockSize; */
+
+  console.log("numBlocksX = numBlocksX / blockSize;", numBlocksX);
 
   pxImg.onload = () => {
     const png = UPNG.decode(buffer);
@@ -29,14 +32,14 @@ export async function pixelate16(buffer, pixelImageUrl, blockSizeInch = 1, dpi, 
 
     // Asegurarnos de que estamos manejando datos de 16 bits
     if (depth === 16) {
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
+      for (let y = startY; y < startY + height; y++) {
+        for (let x = startX; x < startX + width; x++) {
           const idx = (y * png.width + x) * 2;
           if (idx >= data.length) continue; // Evitar el desbordamiento de índice
           const value = (data[idx] << 8) | data[idx + 1];
           depthData.push(value);
           const scaledValue = value >> 8; // Escalar el valor a 8 bits para visualizar
-          const pixelIdx = (y * width + x) * 4;
+          const pixelIdx = ((y - startY) * width + (x - startX)) * 4;
           imageData.data[pixelIdx] = scaledValue;
           imageData.data[pixelIdx + 1] = scaledValue;
           imageData.data[pixelIdx + 2] = scaledValue;
@@ -45,14 +48,15 @@ export async function pixelate16(buffer, pixelImageUrl, blockSizeInch = 1, dpi, 
       }
     } else {
       // Manejo de otras profundidades (e.g., 8 bits por canal)
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
+      for (let y = startY; y < startY + height; y++) {
+        for (let x = startX; x < startX + width; x++) {
           const idx = (y * png.width + x) * 4;
           if (idx >= data.length) continue; // Evitar el desbordamiento de índice
-          imageData.data[idx] = data[idx];
-          imageData.data[idx + 1] = data[idx + 1];
-          imageData.data[idx + 2] = data[idx + 2];
-          imageData.data[idx + 3] = data[idx + 3];
+          const pixelIdx = ((y - startY) * width + (x - startX)) * 4;
+          imageData.data[pixelIdx] = data[idx];
+          imageData.data[pixelIdx + 1] = data[idx + 1];
+          imageData.data[pixelIdx + 2] = data[idx + 2];
+          imageData.data[pixelIdx + 3] = data[idx + 3];
         }
       }
     }
