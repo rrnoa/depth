@@ -125,58 +125,29 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blo
     
     if(applyInch) heights = escalarPulgadas(heights, maxScaleFactor, delta);
 
+    let material;
 
     console.log(Math.min(...heights), Math.max(...heights), heights.length, xBlocks, yBlocks);
 
-    // Crear la geometría y material que se reutilizarán
-const geometry = new THREE.BoxGeometry(blockSizeInInches, blockSizeInInches, 1);
-let material;
-if (allColors) {
-    material = new THREE.MeshStandardMaterial();
-} else {
-    material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-}
+    for (let j = 0; j < yBlocks; j++) {
+        for (let i = 0; i < xBlocks; i++) {
 
-// Crear el InstancedMesh con el número total de instancias
-const count = xBlocks * yBlocks;
-const instancedMesh = new THREE.InstancedMesh(geometry, material, count);
+            const height = heights[j * xBlocks + i];
+            const geometry = new THREE.BoxGeometry(blockSizeInInches, blockSizeInInches, height);
+            if (allColors) {
+                const color = `rgb(${allColors[j * xBlocks + i].join(",")})`;
+                material = new THREE.MeshStandardMaterial({ color: color });
+            } else {
+                material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+            }
 
-// Añadir sombras si es necesario
-instancedMesh.castShadow = true;
-instancedMesh.receiveShadow = true;
-
-let instanceIndex = 0;
-for (let j = 0; j < yBlocks; j++) {
-    for (let i = 0; i < xBlocks; i++) {
-        const height = heights[j * xBlocks + i];
-
-        // Si hay colores especificados, actualizar el material
-        if (allColors) {
-            const color = new THREE.Color(`rgb(${allColors[j * xBlocks + i].join(",")})`);
-            instancedMesh.setColorAt(instanceIndex, color);
+            const cube = new THREE.Mesh(geometry, material);
+            cube.castShadow = true;
+            cube.receiveShadow = true;
+            cube.position.set(i * blockSizeInInches - xBlocks * blockSizeInInches / 2, (yBlocks - j - 1) * blockSizeInInches - yBlocks * blockSizeInInches / 2, height / 2);
+            scene.add(cube);
         }
-
-        // Crear la matriz de transformación
-        const matrix = new THREE.Matrix4();
-        matrix.compose(
-            new THREE.Vector3(
-                i * blockSizeInInches - xBlocks * blockSizeInInches / 2,
-                (yBlocks - j - 1) * blockSizeInInches - yBlocks * blockSizeInInches / 2,
-                height / 2
-            ),
-            new THREE.Quaternion(),
-            new THREE.Vector3(1, 1, height) // Escalar en el eje Z
-        );
-
-        // Establecer la matriz de transformación para esta instancia
-        instancedMesh.setMatrixAt(instanceIndex, matrix);
-        instanceIndex++;
     }
-}
-
-// Añadir el InstancedMesh a la escena
-scene.add(instancedMesh);
-
     if(showGreen) {
         const refgeometry = new THREE.BoxGeometry(0.0254, 0.0254, 0.254);
         const refMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
