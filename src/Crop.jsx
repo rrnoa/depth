@@ -35,6 +35,12 @@ const Crop = ({ selectedImage, onPixelComplete, setAllColors, setStartX, setStar
     }
   }, [selectedImage]);
 
+  useEffect(() => {
+    if (croppedAreaPixels) {
+      onCropComplete(null, croppedAreaPixels);
+    }
+  }, [blockSize]);
+
 
   const onCropComplete = async (croppedArea, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -90,11 +96,13 @@ const Crop = ({ selectedImage, onPixelComplete, setAllColors, setStartX, setStar
         </div>
         <div className="input-group">
           <label htmlFor="height">Ancho del bloque</label>
-          <input
-            type="number"            
+          <select
             value={blockSize}
-            onChange={(e) => setBlockSize(e.target.value)}
-          />
+            onChange={(e) => setBlockSize(Number(e.target.value))}
+          >
+            <option value={1}>1</option>
+            <option value={0.5}>0.5</option>
+          </select>
         </div>        
       </div>
     </div>

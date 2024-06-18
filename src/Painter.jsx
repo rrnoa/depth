@@ -79,7 +79,7 @@ const App = () => {
           <p>Mapa Pixelado</p>
         </div>
         <button className="process-button" onClick={handleMapUpload}>
-          <FaCheck /> Process
+          <FaCheck /> Generar 3d
         </button>
       </div>
       <div className="canvas-container">
