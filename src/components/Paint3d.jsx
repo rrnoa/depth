@@ -79,8 +79,8 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
 
     return (
         <>
-            <div style={{position: 'fixed', top: '42px', color:'black'}}>Dimensiones: {xBlocks*blockSizeInInches}x{yBlocks*blockSizeInInches}---{blockSizeInInches}</div>
-            <div ref={canvasRef} style={{ width: '100%', height: '100%'}}></div>
+            <div style={{position: 'fixed', top: '70px', color:'black'}}>Dimensiones: {xBlocks*blockSizeInInches}x{yBlocks*blockSizeInInches}---{blockSizeInInches}</div>
+            <div ref={canvasRef} style={{ width: '70vw', height: '80vh', backgroundColor:'red'}}></div>
         </>
        
     );
@@ -121,7 +121,7 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blo
             heights[index] = (depthMax - heights[index]) * 0.004;
         }
     }
-    heights = smoothHeightMap(heights, xBlocks, yBlocks, 0.0254)
+    //heights = smoothHeightMap(heights, xBlocks, yBlocks, 0.0254)
     
     if(applyInch) heights = escalarPulgadas(heights, maxScaleFactor, delta);
 

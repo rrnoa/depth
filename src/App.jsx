@@ -7,8 +7,8 @@ const Main = () => {
     return (
         <Router>
           <Routes>
-            <Route path="/" element={<Crop />} />
-            <Route path="/app" element={<Painter />} />
+            {/* <Route path="/" element={<Crop />} /> */}
+            <Route path="/" element={<Painter />} />
           </Routes>
         </Router>
       );

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import * as THREE from 'three';
 import { FaUpload, FaCheck } from 'react-icons/fa';
 import pixelateImg from "./lib/pixelate";
@@ -6,85 +6,119 @@ import { useLocation } from 'react-router-dom';
 import { pixelate16 } from './lib/pixel16';
 import './App.css';
 import { Paint3d } from './components/Paint3d';
+import Crop from './Crop';
+import ImageSidebar from './components/ImageSidebar';
+import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import 'react-tabs/style/react-tabs.css';
 
 const App = () => {
   const location = useLocation();
-  const { width, height, blockSize, croppedImg, pxImg, xBlocks, yBlocks, allColors, startX, startY } = location.state || { width: 0, height: 0, blockSize, croppedImg: null, pxImg: null, xBlocks: 0, yBlocks: 0, allColors: [], startX: 0, startY: 0 };
+  const { width, height, blockSize, croppedImg } = location.state || { width: 0, height: 0, blockSize: 1, croppedImg: null};
   const sceneRef = useRef(new THREE.Scene());
-  const renderRef =  useRef(new THREE.WebGLRenderer({ antialias: true}));
+  const renderRef = useRef(new THREE.WebGLRenderer({ antialias: true }));
+  const [pxImg, setPxImg] = useState(null)
+
+  const [xBlocks, setXBlokcs] = useState(0);
+  const [yBlocks, setYBlokcs] = useState(0);
+  const [allColors, setAllColors] = useState(0);
+  const [startX, setStartX] = useState(0);
+  const [startY, setStartY] = useState(0);
 
   const [imageUrl, setImageUrl] = useState(null);
   const [pixelDepthUrl, setPixelDepthUrl] = useState(null);
   const [heights, setHeights] = useState([]);
   const [resultImageUrl, setResultImageUrl] = useState(null);
 
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedDepthMap, setSelectedDepthMap] = useState(null);
+  
 
-  const handleMapUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
+  const handleSelectImage = (image, depthMap) => {
+    console.log("handleSelectImage",depthMap);
+    setSelectedImage(image);
+    setSelectedDepthMap(depthMap);
+  };
+
+  const handleMapUpload = async () => {
+    console.log("handleMapUpload",selectedDepthMap);
+    try {
+      // Fetch the depth map image from the URL
+      const response = await fetch(selectedDepthMap);
+      const blob = await response.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      //console.log(arrayBuffer, pxImg, blockSize, xBlocks, yBlocks, startX, startY);
+      // Process the depth map image
+      pixelate16(arrayBuffer, pxImg, blockSize, xBlocks, yBlocks, startX, startY, (dataUrl, alturas) => {
+        setPixelDepthUrl(dataUrl);
+        setHeights(alturas);
+      });
+  
+      // Convert blob to a data URL
       const reader = new FileReader();
-      reader.onloadend = (e) => {
-        const arrayBuffer = e.target.result;
-        pixelate16(arrayBuffer, pxImg, blockSize, xBlocks, yBlocks, startX, startY, (dataUrl, alturas)=>{
-          setPixelDepthUrl(dataUrl);
-          setHeights(alturas);          
-        })
+      reader.onloadend = () => {
+        setResultImageUrl(reader.result);
       };
-      reader.readAsArrayBuffer(file);
-
-      const reader2 = new FileReader();
-      reader2.onloadend = async () => {
-        setResultImageUrl(reader2.result);
-      };
-      reader2.readAsDataURL(file);
-
+      reader.readAsDataURL(blob);
+  
+    } catch (error) {
+      console.error('Error loading depth map image:', error);
     }
   };
 
+
   return (
-    
     <div className="app-container">
-      <div className={`sidebar`}>
-        <div className="upload-section">          
-          {croppedImg && <img src={croppedImg} alt="Preview 1" className="preview-image" />}
-        </div>
-        <div className="upload-section">
-          <input type="file" id="image2" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleMapUpload(e)} />
-          <label htmlFor="image2" className="upload-button">
-            <FaUpload /> Profundidad
-          </label>
-          {resultImageUrl && <img src={resultImageUrl} alt="Preview 2" className="preview-image" />}
-        </div>
+      <div className="sidebar">
         
-        <button className="process-button">
-          <FaCheck /> Process
-        </button>
-      </div>
-      <div className="canvas-container">
-        <div id="mainCanvas">
-        <Paint3d 
-          sceneRef = {sceneRef.current}
-          renderRef = {renderRef.current}
-          heights = {heights}
-          allColors = {allColors}
-          xBlocks = {xBlocks}
-          yBlocks = {yBlocks}
-          blockSizeInInches={blockSize}
-        ></Paint3d>
-        </div>
-      </div>
-      <div className="rightbar">
         <div className="image-section">
-        {pxImg && <img src={pxImg} alt="Pixelada" className="rightbar-image" />}
+          {pxImg && <img src={pxImg} alt="Pixelada" className="rightbar-image" />}
           <p>Pixelada</p>
         </div>
         <div className="image-section">
           {pixelDepthUrl && <img src={pixelDepthUrl} alt="Mapa Pixelado" className="rightbar-image" />}
           <p>Mapa Pixelado</p>
         </div>
+        <button className="process-button" onClick={handleMapUpload}>
+          <FaCheck /> Process
+        </button>
+      </div>
+      <div className="canvas-container">
+        <Tabs>
+          <TabList>
+            <Tab>Crop</Tab>
+            <Tab>Paint3D</Tab>
+          </TabList>
+          <TabPanel>
+            <Crop 
+            selectedImage={selectedImage} 
+            onPixelComplete={setPxImg}
+            setAllColors={setAllColors}
+            setStartX={setStartX}
+            setStartY={setStartY}
+            setXBlokcs = {setXBlokcs}
+            setYBlokcs = {setYBlokcs}
+            />
+          </TabPanel>
+          <TabPanel>
+            <Paint3d 
+              sceneRef={sceneRef.current}
+              renderRef={renderRef.current}
+              heights={heights}
+              allColors={allColors}
+              xBlocks={xBlocks}
+              yBlocks={yBlocks}
+              blockSizeInInches={blockSize}
+            />
+          </TabPanel>
+        </Tabs>
+      </div>
+      <div className="rightbar">
+        <ImageSidebar onSelectImage={handleSelectImage}/>
       </div>
     </div>
   );
 };
 
 export default App;
+
+

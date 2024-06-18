@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Cropper from 'react-easy-crop';
 import "react-easy-crop/react-easy-crop.css";
 import { useNavigate } from 'react-router-dom';
@@ -7,51 +7,61 @@ import getCroppedImg from './lib/cropImage';
 import pixelateImg from "./lib/pixelate";
 
 
-
-const Crop = () => {
-  const [width, setWidth] = useState(80);
+const Crop = ({ selectedImage, onPixelComplete, setAllColors, setStartX, setStartY, setXBlokcs, setYBlokcs }) => {
+  const [width, setWidth] = useState(50);
   const [height, setHeight] = useState(50);
   const [blockSize, setBlockSize] = useState(1);
-  const [imageSrc, setImageSrc] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-  const [croppedImg, setCroppedImg] = useState(null);
+  const [imageSrc, setImageSrc] = useState(null);
+  const [pixelImg, setPixelImg] = useState(null);
 
 
-  const navigate = useNavigate();
+  useEffect(() => {
+    if (selectedImage) {
+      createImage(selectedImage)
+        .then(image => {
+          // Convert image to data URL
+          const canvas = document.createElement('canvas');
+          canvas.width = image.width;
+          canvas.height = image.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(image, 0, 0, image.width, image.height);
+          const dataUrl = canvas.toDataURL('image/jpeg');
+          setImageSrc(dataUrl);
+        })
+        .catch(console.error);
+    }
+  }, [selectedImage]);
 
-  const onCropComplete =  async (croppedArea, croppedAreaPixels) => {
+
+  const onCropComplete = async (croppedArea, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
-    const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
-    setCroppedImg(croppedImage);
-  }
+    try {
+      const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
+      //setCroppedImg(croppedImage);
 
-  const handleContinue = async () => {
-    // Handle the continue button click, maybe you want to pass the cropped area details
-    const PixelObj = await pixelateImg(croppedImg, width, height, blockSize);
-    const allColors = PixelObj.allColors;
-    const pxImg = PixelObj.imageURL;
-    const xBlocks = PixelObj.xBlocks;
-    const yBlocks = PixelObj.yBlocks;
-    const startX = croppedAreaPixels.x;
-    const startY = croppedAreaPixels.y;
-    navigate('/app', { state: { width, height, blockSize, croppedImg, pxImg, xBlocks, yBlocks, allColors, startX, startY } });   
+      const PixelObj = await pixelateImg(croppedImage, width, height, blockSize);
+      onPixelComplete(PixelObj.imageURL);
+
+      setAllColors(PixelObj.allColors);
+      setXBlokcs(PixelObj.xBlocks);
+      setYBlokcs(PixelObj.yBlocks);
+      setStartX(croppedAreaPixels.x);
+      setStartY(croppedAreaPixels.y);
+            
+    } catch (error) {
+      console.error('Error cropping image:', error);
+    }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.addEventListener('load', () => setImageSrc(reader.result));
-    reader.readAsDataURL(file);
-  };
-
-  return (
+   return (
     <div className="new-screen-container">
       <div className="main-area">
-        {imageSrc ? (
+        {imageSrc  && (
           <Cropper
-          image={imageSrc}
+          image={imageSrc }
           crop={crop}
           zoom={zoom}
           aspect={width / height}
@@ -59,8 +69,6 @@ const Crop = () => {
           onCropComplete={onCropComplete}
           onZoomChange={setZoom}
         />
-        ) : (
-          <input type="file" onChange={handleFileChange} />
         )}
       </div>
       <div className="bottom-section">
@@ -87,13 +95,20 @@ const Crop = () => {
             value={blockSize}
             onChange={(e) => setBlockSize(e.target.value)}
           />
-        </div>
-        <button className="continue-button" onClick={handleContinue}>
-          Continuar
-        </button>
+        </div>        
       </div>
     </div>
   );
 };
 
 export default Crop;
+
+async function createImage(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', (error) => reject(error));
+    image.setAttribute('crossOrigin', 'anonymous');
+    image.src = url;
+  });
+}

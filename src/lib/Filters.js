@@ -4,8 +4,6 @@ export const escalarPulgadas = (alturas, rango, delta = 0.0254/4) => {
         scala.push(index);
     }
 
-    console.log("scala",scala)
-
     return scaleDepthValues(alturas, scala);
 
 }
@@ -27,8 +25,6 @@ function scaleDepthValues(depthMap, targetRanges) {
       return closestRange;
     });
 
-    console.log("scaledDepthMap",scaledDepthMap);
-  
     return scaledDepthMap;
   }
 

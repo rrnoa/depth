@@ -13,8 +13,8 @@ html, body, #root {
 .new-screen-container {
   display: flex;
   flex-direction: column;
-  width: 100vw;
-  height: 100vh;
+  width: 700px;
+  height: 80vh;
   justify-content: space-between;
   align-items: center;
 }
@@ -30,14 +30,16 @@ html, body, #root {
 }
 
 .bottom-section {
+  position: absolute;
   width: 100%;
-  padding: 20px;
+  padding: 10px;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 20px;
   background-color: #f0f0f0;
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+  bottom: 10px;
 }
 
 .input-group {

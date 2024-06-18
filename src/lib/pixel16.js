@@ -7,8 +7,8 @@ export async function pixelate16(buffer, pixelImageUrl, blockSize, numBlocksX, n
   /* numBlocksX = numBlocksX / blockSize;
   numBlocksY = numBlocksY / blockSize; */
 
-  console.log("numBlocksX = numBlocksX / blockSize;", numBlocksX);
-
+  //console.log("numBlocksX = numBlocksX / blockSize;", buffer);
+  
   pxImg.onload = () => {
     const png = UPNG.decode(buffer);
 
