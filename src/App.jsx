@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 import './App.css'
-import initThreeJS from './components/Init3d';
 import pixelateImg from "./lib/pixelate";
 import ToggleVMState from './components/ChangeVMState';
 import { resizeAndCompressImage } from './lib/ResizeImg';
