@@ -5,8 +5,7 @@ export const FilterLogaritm = (alturas, scaleMin = 0 , scaleMax = 10) => {
     //primero escalar de 1 a 2
     for (let i = 0; i < alturas.length; i++) {
         alturas[i] = (alturas[i] - depthMin) / (depthMax - depthMin) + 1;
-    } 
-   
+    }
 
     for (let index = 0; index < alturas.length; index++) {
         alturas[index] = alturas[index] !== 0? Math.log(alturas[index]): 0;        
@@ -16,7 +15,7 @@ export const FilterLogaritm = (alturas, scaleMin = 0 , scaleMax = 10) => {
     const logDepthMax = Math.max(...alturas);
 
     for (let i = 0; i < alturas.length; i++) {
-        alturas[i] = scaleMax - ((alturas[i] - logDepthMin) / (logDepthMax - logDepthMin)) * (scaleMax - scaleMin) + scaleMin;
+        alturas[i] = 1 - ((alturas[i] - logDepthMin) / (logDepthMax - logDepthMin)) * (scaleMax - scaleMin) + scaleMin;
     }
 
     return alturas;

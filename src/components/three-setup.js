@@ -44,7 +44,6 @@ export const configControls = (camera, renderer) => {
     //controls.minDistance = Math.max(5, Math.hypot(width, height)/4);
     controls.minDistance = 0.5;
     controls.maxDistance = 20;
-    controls.enablePan = false;
     
     controls.update();
 

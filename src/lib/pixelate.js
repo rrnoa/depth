@@ -1,10 +1,11 @@
 import kmeans from "./kmeans";
+import EXIF from 'exif-js';
 
-export default function pixelateImg(croppedImageSrc, blockSizeInch = 1) {
 
-  const pixelXInch = 10; //Vamos a asumir que 1 pugada son 10 pixeles
-  const blockPixelSize = pixelXInch * blockSizeInch;
-  
+export default function pixelateImg(croppedImageSrc, xBlocks, yBlocks, blockSize ) {  
+
+  xBlocks = xBlocks / blockSize; // si son 0.5 pulgadas entonces es el doble de bloqes
+  yBlocks = yBlocks / blockSize;
   // Set canvas size
   return new Promise((resolve, reject) => {
     const croppedImage = new Image();
@@ -24,21 +25,25 @@ export default function pixelateImg(croppedImageSrc, blockSizeInch = 1) {
       let croppedWidth = croppedImage.width;
       let croppedHeight = croppedImage.height;
 
-      canvas.width = croppedWidth;
-      canvas.height = croppedHeight;     
+      let blockPixelSize = Math.floor(croppedWidth / xBlocks);
 
+      const correctImgWidth = blockPixelSize * xBlocks;//la Longitudes ajustas
+      const correctImgHeight = blockPixelSize * yBlocks;//la Longitudes ajustas
+
+      canvas.width = correctImgWidth;
+      canvas.height = correctImgHeight;     
 
       // Draw initial image (en el canvas que esta oculto se dibuja la image con crop)
       ctx.drawImage(
         croppedImage,
         0,
         0,
-        croppedImage.width,
-        croppedImage.height,
+        correctImgWidth,
+        correctImgHeight,
         0,
         0,
-        canvas.width,
-        canvas.height
+        correctImgWidth,
+        correctImgHeight
       );
       let allColors = [];
       // Get image data in form of array of pixels (RGBA) not array of arrays
@@ -46,10 +51,8 @@ export default function pixelateImg(croppedImageSrc, blockSizeInch = 1) {
       const imData = imageData.data;
       // Calculate average color of each block
 
-      let county=0;
-      for (let y = 10; y < croppedHeight; y += blockPixelSize) {
-        county ++;
-        for (let x = 10; x < croppedWidth; x += blockPixelSize) {
+      for (let y = 0; y < correctImgHeight; y += blockPixelSize) {
+        for (let x = 0; x < correctImgWidth; x += blockPixelSize) {
           let red = 0;
           let green = 0;
           let blue = 0;
@@ -58,8 +61,8 @@ export default function pixelateImg(croppedImageSrc, blockSizeInch = 1) {
 
           for (let dy = 0; dy < blockPixelSize; dy++) {
             for (let dx = 0; dx < blockPixelSize; dx++) {
-              if (x + dx < croppedWidth && y + dy < croppedHeight) {
-                let offset = 4 * ((y + dy) * croppedWidth + (x + dx));
+              if (x + dx < correctImgWidth && y + dy < correctImgHeight) {
+                let offset = 4 * ((y + dy) * correctImgWidth + (x + dx));
                 let redValue = imData[offset];
                 let greenValue = imData[offset + 1];
                 let blueValue = imData[offset + 2];
@@ -99,9 +102,9 @@ export default function pixelateImg(croppedImageSrc, blockSizeInch = 1) {
       let i = 0;
       // Replace colors with cluster centroids
 
-      for (let y = 10; y < croppedHeight; y += blockPixelSize) {
+      for (let y = 0; y < correctImgHeight; y += blockPixelSize) {
         let newColor;
-        for (let x = 10; x < croppedWidth; x += blockPixelSize) {
+        for (let x = 0; x < correctImgWidth; x += blockPixelSize) {
           let color = allColors[i];
           let clusterFound = false;
           for (let cluster of kmeansResult.clusters) {
@@ -137,6 +140,8 @@ export default function pixelateImg(croppedImageSrc, blockSizeInch = 1) {
       resolve({
         imageURL: canvas.toDataURL(),
         allColors: allColors,
+        xBlocks,
+        yBlocks
       });
     };
     croppedImage.onerror = (error) => {

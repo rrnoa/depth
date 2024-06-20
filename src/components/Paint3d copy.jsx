@@ -2,19 +2,25 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import GUI from 'lil-gui';
 import { configCamera, configLights, configRender, configControls } from './three-setup';
+import { FilterLogaritm } from '../lib/FilterLogaritm';
+import { step } from 'three/examples/jsm/nodes/Nodes.js';
 
 export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlocks }) => {
-    const [blockSizeInInches, setBlockSizeInInches] = useState(0.0254);
-    const [maxScaleFactor, setMaxScaleFactor] = useState(0.254);
+    const [blockSizeInInches, setBlockSizeInInches] = useState(1);
+    const [maxScaleFactor, setMaxScaleFactor] = useState(10);
+    const [applyLogaritm, setApplyLogaritm] = useState(false);
+    const [applyScale, setApplyScale] = useState(true);
     const canvasRef = useRef(null);
     const guiRef = useRef(null);
 
     useEffect(() => {
         if (!guiRef.current) {
             guiRef.current = new GUI();
-            const blockSizeController = guiRef.current.add({ blockSizeInInches }, 'blockSizeInInches', 0.01, 0.0762);
-            const maxScaleFactorController = guiRef.current.add({ maxScaleFactor }, 'maxScaleFactor', 0.1, 2);
-            guiRef.current.add({ applyChanges: () => applyChanges(blockSizeController, maxScaleFactorController) }, 'applyChanges');
+            const blockSizeController = guiRef.current.add({ blockSizeInInches }, 'blockSizeInInches', 0.5, 3, 0.5);
+            const maxScaleFactorController = guiRef.current.add({ maxScaleFactor }, 'maxScaleFactor', 1, 50, 1);
+            const applyLogaritmController = guiRef.current.add({ applyLogaritm }, 'applyLogaritm');
+            const applyScaleController = guiRef.current.add({ applyScale }, 'applyScale');
+            guiRef.current.add({ applyChanges: () => applyChanges(blockSizeController, maxScaleFactorController, applyLogaritmController, applyScaleController) }, 'applyChanges');
         }
 
         console.log("----------------------useEffect Scene3d----------------------------");
@@ -43,7 +49,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
 
         animate();
 
-        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, blockSizeInInches, maxScaleFactor);
+        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, blockSizeInInches, maxScaleFactor, applyLogaritm, applyScale);
 
         return () => {
             console.log("desmontando");
@@ -53,37 +59,82 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
                 guiRef.current = null;
             }
         };
-    }, [heights, blockSizeInInches, maxScaleFactor]);
+    }, [heights, blockSizeInInches, maxScaleFactor, applyLogaritm, applyScale]);
 
-    const applyChanges = (blockSizeController, maxScaleFactorController) => {
+    const applyChanges = (blockSizeController, maxScaleFactorController, applyLogaritmController, applyScaleController) => {
         console.log("aplicando cambios...");
         setBlockSizeInInches(blockSizeController.getValue());
         setMaxScaleFactor(maxScaleFactorController.getValue());
+        setApplyLogaritm(applyLogaritmController.getValue());
+        setApplyScale(applyScaleController.getValue());
+        console.log(applyScaleController.getValue());
     };
 
     return (
-        <div ref={canvasRef} style={{ width: '100%', height: '100%' }}>Paint3d</div>
+        <>
+            <div style={{position: 'fixed', top: '10px'}}>Dimensiones: {xBlocks}x{yBlocks}</div>
+            <div ref={canvasRef} style={{ width: '100%', height: '100%' }}>Paint3d</div>
+        </>
+       
     );
 };
 
-const paintRelive = (scene, heights, allColors, xBlocks, yBlocks, blockSizeInInches, maxScaleFactor) => {
+const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, blockSizeInInches, maxScaleFactor, applyLogaritm, applyScale) => {
+    blockSizeInInches = blockSizeInInches * 0.0254;
+    maxScaleFactor = maxScaleFactor * 0.0254;
+
+    const steps =  0.0254; //altura entre bloques
+
     const maxHeight = 0.254; // Establece un tope máximo de altura en pulgadas
     let mayor = 0;
-    const normalizedHeights = heights.map(height => {
-        let adjustedHeight = maxScaleFactor - (height * (maxScaleFactor / 255));
-        return adjustedHeight;
-    });
+    let heights = [...alturas];//copiar el arreglo de alturas
+    let depthMin = Math.min(...heights);
+    let depthMax = Math.max(...heights);  
 
-    const normalizedHeightsExp = normalizedHeights.map(height => {
-        let adjustedHeight = Math.pow(height, 0.1);
-        return adjustedHeight;
-    });
+
+    if(applyLogaritm) {
+        console.log("aplicando logaritmo")
+        FilterLogaritm(heights, 0, maxScaleFactor);
+    } else if(applyScale) {
+        console.log("aplicando Escala")
+        depthMin = Math.min(...heights);
+        depthMax = Math.max(...heights);
+        for (let i = 0; i < heights.length; i++) {
+            heights[i] = maxScaleFactor - (maxScaleFactor * (heights[i] - depthMin) / (depthMax - depthMin));
+        }
+    } else {
+        console.log("Aplicando Escala normal")
+        for (let index = 0; index < heights.length; index++) {
+            heights[index] = 1 - heights[index];
+        }
+    }
+
+    const scaledMaxHeight = Math.max(...heights);//maxima altura despues de scalada
+    const scaledMinHeight = Math.min(...heights);//minima altura despues de scalada
+
+    const scaledRealHeight = scaledMaxHeight - scaledMinHeight; //la distancia entre el mayor y el menor
+
+    console.log("scaledRealHeight->",scaledRealHeight);
+
+    const cantCapas = scaledRealHeight / steps; //obtengo la cantidad de capas 
+
+    //crear el arreglo de limites de capas, 1 + cantidad de capas
+    let limitesCapas= [];
+    for (let index = 0; index <= scaledRealHeight; index += steps) {
+        limitesCapas.push(index);
+    }
+
+    const delta = 0.001;
+    heights = reemplazarPosiciones(heights);
 
     let material;
 
+    console.log("Max minimo", Math.min(...heights), Math.max(...heights));
+
     for (let j = 0; j < yBlocks; j++) {
         for (let i = 0; i < xBlocks; i++) {
-            const height = normalizedHeights[j * xBlocks + i];
+            //const height = applyLogaritm ? maxScaleFactor - heights[j * xBlocks + i]: maxScaleFactor - heights[j * xBlocks + i];
+            const height = heights[j * xBlocks + i];
             const geometry = new THREE.BoxGeometry(blockSizeInInches, blockSizeInInches, height);
             if (allColors) {
                 const color = `rgb(${allColors[j * xBlocks + i].join(",")})`;
@@ -100,6 +151,46 @@ const paintRelive = (scene, heights, allColors, xBlocks, yBlocks, blockSizeInInc
         }
     }
 };
+
+function reemplazarPosiciones(alturas, step = 0.0254, delta = 0.001) {   
+    console.log("alturas.length",alturas.length)
+    const capas = 10;
+    
+    // Crear una copia del arreglo para no modificar el original
+    let nuevoArregloCeros = [...alturas];
+    let nuevoArregloSustituido = [...alturas];
+    let maxAlturas = Math.max(...alturas);
+    let valorNuevo = maxAlturas;
+    for (let index = 0; index < capas; index++) {
+
+        // Encontrar el valor máximo en el arreglo
+        let valorMaximo = Math.max(...nuevoArregloCeros);
+        //console.log("valorMaximo - step: ", valorMaximo - step);
+        let umbral = valorMaximo - delta;        
+        // Reemplazar los elementos que cumplen la condición con 0
+
+        console.log("valorMaximo", valorMaximo)
+        let sum = 0;
+        for (let i = 0; i < nuevoArregloCeros.length; i++) {
+            if (nuevoArregloCeros[i] >= umbral) {
+                nuevoArregloCeros[i] = 0;
+                nuevoArregloSustituido[i] = valorNuevo;
+                sum ++;
+            }
+        }
+
+        valorNuevo -= step;
+        console.log(sum);
+        
+    }
+
+    for (let index = 0; index < nuevoArregloCeros.length; index++) {
+        if(nuevoArregloCeros[index] !== 0) nuevoArregloSustituido[index] = 0.0254;
+        
+    }
+    return nuevoArregloSustituido;
+}
+
 
 const removeMeshesWithChildren = (obj) => {
     const children = [...obj.children];
