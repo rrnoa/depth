@@ -11,7 +11,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
     const [applyInch, setApplyInch] = useState(true);
     const [showGreen, setShowGreen] = useState(false);
     const [cutHeight, setCutHeight] = useState(0.65);
-    const [delta, setDelta] = useState(0.5);
+    const [delta, setDelta] = useState(0.25);
     const canvasRef = useRef(null);
     const guiRef = useRef(null);
 
