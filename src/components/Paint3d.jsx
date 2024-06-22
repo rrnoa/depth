@@ -9,8 +9,6 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
     const {blockSize} = useContext(ImageContext);
     const [maxScaleFactor, setMaxScaleFactor] = useState(5);
     const [applyLogaritm, setApplyLogaritm] = useState(false);
-    const [applyScale, setApplyScale] = useState(true);
-    const [applyInch, setApplyInch] = useState(true);
     const [showGreen, setShowGreen] = useState(false);
     const [cutHeight, setCutHeight] = useState(0.5);
     const [delta, setDelta] = useState(0.125);
@@ -22,11 +20,9 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
             guiRef.current = new GUI();
             const heightCutController = guiRef.current.add({ cutHeight }, 'cutHeight', 0, 1, 0.01);
             const maxScaleFactorController = guiRef.current.add({ maxScaleFactor }, 'maxScaleFactor', 1, 50, 1);
-            const applyInchController = guiRef.current.add({ applyInch }, 'applyInch');
             const deltaController = guiRef.current.add({ delta }, 'delta', [0.125, 0.25, 0.5, 1]);
-            const applyScaleController = guiRef.current.add({ applyScale }, 'applyScale');
             const showGreenController = guiRef.current.add({ showGreen }, 'showGreen');
-            guiRef.current.add({ applyChanges: () => applyChanges(heightCutController, maxScaleFactorController, applyScaleController, deltaController, applyInchController, showGreenController) }, 'applyChanges');
+            guiRef.current.add({ applyChanges: () => applyChanges(heightCutController, maxScaleFactorController, deltaController, showGreenController) }, 'applyChanges');
         }
 
         /* const width = window.innerWidth;
@@ -57,7 +53,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
 
         animate();
 
-        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, applyScale, delta, applyInch, showGreen);
+        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, delta, showGreen);
 
         return () => {
             console.log("desmontando");
@@ -67,15 +63,13 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
                 guiRef.current = null;
             }
         };
-    }, [heights, cutHeight, maxScaleFactor, applyLogaritm, applyScale, delta, applyInch, showGreen]);
+    }, [heights, cutHeight, maxScaleFactor, applyLogaritm, delta, showGreen]);
 
-    const applyChanges = (heightCutController, maxScaleFactorController, applyScaleController, deltaController, applyInchController, showGreenController) => {
+    const applyChanges = (heightCutController, maxScaleFactorController, deltaController, showGreenController) => {
         console.log("aplicando cambios...");
         setCutHeight(heightCutController.getValue());
-        setMaxScaleFactor(maxScaleFactorController.getValue());
-        setApplyScale(applyScaleController.getValue());
+        setMaxScaleFactor(maxScaleFactorController.getValue());        
         setDelta(deltaController.getValue());
-        setApplyInch(applyInchController.getValue());
         setShowGreen(showGreenController.getValue());
     };
 
@@ -88,7 +82,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
     );
 };
 
-const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, applyScale, delta, applyInch, showGreen) => {
+const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, delta, showGreen) => {
     console.log("blockSize", blockSize)
     blockSize = blockSize * 0.0254;
     maxScaleFactor = maxScaleFactor * 0.0254;
@@ -111,22 +105,17 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blo
         }       
     }
 
-    if(applyScale) {
+    
         console.log("aplicando Escala")
         depthMin = Math.min(...heights);
         depthMax = Math.max(...heights);
         for (let i = 0; i < heights.length; i++) {
             heights[i] = maxScaleFactor * (heights[i] - depthMin) / (depthMax - depthMin);
         }
-    } else {
-        console.log("Aplicando Escala normal")
-        for (let index = 0; index < heights.length; index++) {
-            heights[index] = (depthMax - heights[index]) * 0.004;
-        }
-    }
+   
     //heights = smoothHeightMap(heights, xBlocks, yBlocks, 0.0254)
     
-    if(applyInch) heights = escalarPulgadas(heights, maxScaleFactor, delta);
+   heights = escalarPulgadas(heights, maxScaleFactor, delta);
 
 
     console.log(Math.min(...heights), Math.max(...heights), heights.length, xBlocks, yBlocks);

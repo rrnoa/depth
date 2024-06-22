@@ -86,7 +86,7 @@ const Crop = ({ selectedImage, onPixelComplete, setAllColors, setStartX, setStar
           />
         </div>
         <div className="input-group">
-          <label htmlFor="height">Largo:</label>
+          <label htmlFor="height">Alto:</label>
           <input
             type="number"            
             value={yBlocks}
