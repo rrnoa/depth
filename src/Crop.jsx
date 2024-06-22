@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import Cropper from 'react-easy-crop';
 import "react-easy-crop/react-easy-crop.css";
-import { useNavigate } from 'react-router-dom';
 import './Crop.css';
 import getCroppedImg from './lib/cropImage';
 import pixelateImg from "./lib/pixelate";
+import { ImageContext } from './context/ImageContext';
 
 
 const Crop = ({ selectedImage, onPixelComplete, setAllColors, setStartX, setStartY, setXBlokcs, setYBlokcs }) => {
-  const [width, setWidth] = useState(50);
-  const [height, setHeight] = useState(50);
-  const [blockSize, setBlockSize] = useState(1);
+  const {blockSize, setBlockSize, xBlocks, setXBlocks, yBlocks, setYBlocks} = useContext(ImageContext);
+  
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
@@ -48,7 +47,7 @@ const Crop = ({ selectedImage, onPixelComplete, setAllColors, setStartX, setStar
       const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
       //setCroppedImg(croppedImage);
 
-      const PixelObj = await pixelateImg(croppedImage, width, height, blockSize);
+      const PixelObj = await pixelateImg(croppedImage, xBlocks, yBlocks, blockSize);
       onPixelComplete(PixelObj.imageURL);
 
       setAllColors(PixelObj.allColors);
@@ -70,7 +69,7 @@ const Crop = ({ selectedImage, onPixelComplete, setAllColors, setStartX, setStar
           image={imageSrc }
           crop={crop}
           zoom={zoom}
-          aspect={width / height}
+          aspect={xBlocks / yBlocks}
           onCropChange={setCrop}
           onCropComplete={onCropComplete}
           onZoomChange={setZoom}
@@ -82,16 +81,16 @@ const Crop = ({ selectedImage, onPixelComplete, setAllColors, setStartX, setStar
           <label htmlFor="width">Ancho:</label>
           <input
             type="number"
-            value={width}
-            onChange={(e) => setWidth(e.target.value)}
+            value={xBlocks}
+            onChange={(e) => setXBlocks(e.target.value)}
           />
         </div>
         <div className="input-group">
           <label htmlFor="height">Largo:</label>
           <input
             type="number"            
-            value={height}
-            onChange={(e) => setHeight(e.target.value)}
+            value={yBlocks}
+            onChange={(e) => setYBlocks(e.target.value)}
           />
         </div>
         <div className="input-group">

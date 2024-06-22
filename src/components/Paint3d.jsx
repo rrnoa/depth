@@ -1,17 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import * as THREE from 'three';
 import GUI from 'lil-gui';
 import { configCamera, configLights, configRender, configControls } from './three-setup';
 import { escalarPulgadas, smoothHeightMap } from '../lib/Filters';
+import { ImageContext } from '../context/ImageContext';
 
-export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlocks, blockSizeInInches }) => {
-    const [maxScaleFactor, setMaxScaleFactor] = useState(10);
+export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlocks }) => {
+    const {blockSize} = useContext(ImageContext);
+    const [maxScaleFactor, setMaxScaleFactor] = useState(5);
     const [applyLogaritm, setApplyLogaritm] = useState(false);
     const [applyScale, setApplyScale] = useState(true);
     const [applyInch, setApplyInch] = useState(true);
     const [showGreen, setShowGreen] = useState(false);
-    const [cutHeight, setCutHeight] = useState(0.65);
-    const [delta, setDelta] = useState(0.25);
+    const [cutHeight, setCutHeight] = useState(0.5);
+    const [delta, setDelta] = useState(0.125);
     const canvasRef = useRef(null);
     const guiRef = useRef(null);
 
@@ -55,11 +57,11 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
 
         animate();
 
-        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, cutHeight, blockSizeInInches, maxScaleFactor, applyScale, delta, applyInch, showGreen);
+        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, applyScale, delta, applyInch, showGreen);
 
         return () => {
             console.log("desmontando");
-            removeMeshesWithChildren(sceneRef);
+            removeObjWithChildren(sceneRef);
             if (guiRef.current) {
                 guiRef.current.destroy();
                 guiRef.current = null;
@@ -79,15 +81,16 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
 
     return (
         <>
-            <div style={{position: 'fixed', top: '70px', color:'black'}}>Dimensiones: {xBlocks*blockSizeInInches}x{yBlocks*blockSizeInInches}---{blockSizeInInches}</div>
+            <div style={{position: 'fixed', top: '70px', color:'black'}}>Dimensiones: {xBlocks*blockSize}x{yBlocks*blockSize}---{blockSize}</div>
             <div ref={canvasRef} style={{ width: '70vw', height: '80vh', backgroundColor:'red'}}></div>
         </>
        
     );
 };
 
-const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blockSizeInInches, maxScaleFactor, applyScale, delta, applyInch, showGreen) => {
-    blockSizeInInches = blockSizeInInches * 0.0254;
+const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, applyScale, delta, applyInch, showGreen) => {
+    console.log("blockSize", blockSize)
+    blockSize = blockSize * 0.0254;
     maxScaleFactor = maxScaleFactor * 0.0254;
     delta = delta * 0.0254;
 
@@ -129,7 +132,7 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blo
     console.log(Math.min(...heights), Math.max(...heights), heights.length, xBlocks, yBlocks);
 
     // Crear la geometría y material que se reutilizarán
-const geometry = new THREE.BoxGeometry(blockSizeInInches, blockSizeInInches, 1);
+const geometry = new THREE.BoxGeometry(blockSize, blockSize, 1);
 let material;
 if (allColors) {
     material = new THREE.MeshStandardMaterial();
@@ -160,8 +163,8 @@ for (let j = 0; j < yBlocks; j++) {
         const matrix = new THREE.Matrix4();
         matrix.compose(
             new THREE.Vector3(
-                i * blockSizeInInches - xBlocks * blockSizeInInches / 2,
-                (yBlocks - j - 1) * blockSizeInInches - yBlocks * blockSizeInInches / 2,
+                i * blockSize - xBlocks * blockSize / 2,
+                (yBlocks - j - 1) * blockSize - yBlocks * blockSize / 2,
                 height / 2
             ),
             new THREE.Quaternion(),
@@ -191,7 +194,7 @@ scene.add(instancedMesh);
 };
 
 
-const removeMeshesWithChildren = (obj) => {
+/* const removeMeshesWithChildren = (obj) => {
     const children = [...obj.children];
     for (const child of children) {
         if (child instanceof THREE.Mesh) {
@@ -215,4 +218,49 @@ const removeMeshesWithChildren = (obj) => {
             obj.remove(child);
         }
     }
-};
+}; */
+
+const removeObjWithChildren = (obj) => {
+    while (obj.children.length > 0) {
+      removeObjWithChildren(obj.children[0]);
+    }
+    if (obj.geometry) {
+      obj.geometry.dispose();
+
+    }
+    if (obj.material) {
+      if (Array.isArray(obj.material)) {
+        for (const material of obj.material) {
+          if (material.map) {
+            material.map.dispose();
+            //console.log('eliminando texturas');
+          }
+          if (material.metalnessMap) {
+            material.metalnessMap.dispose();
+            //console.log('eliminando texturas');
+          }
+          if (material.normalMap) {
+            material.normalMap.dispose();
+            //console.log('eliminando texturas');
+          }
+          material.dispose();
+            //console.log('eliminando materiales');
+        }
+      } else {
+        if (obj.material.map) {
+          obj.material.map.dispose();
+        }
+        if (obj.material.metalnessMap) {
+            obj.material.metalnessMap.dispose();
+        }
+        if (obj.material.normalMap) {
+            obj.material.normalMap.dispose();
+        }
+        obj.material.dispose();
+      }
+    }
+    if (obj.parent) {
+      obj.parent.remove(obj);
+    }
+}
+
