@@ -7,8 +7,6 @@ export async function pixelate16(buffer, pixelImageUrl, blockSize, numBlocksX, n
   /* numBlocksX = numBlocksX / blockSize;
   numBlocksY = numBlocksY / blockSize; */
 
-  //console.log("numBlocksX = numBlocksX / blockSize;", buffer);
-  
   pxImg.onload = () => {
     const png = UPNG.decode(buffer);
 
@@ -27,8 +25,6 @@ export async function pixelate16(buffer, pixelImageUrl, blockSize, numBlocksX, n
 
     // Obtener los datos de los píxeles directamente de la propiedad 'data'
     let data = png.data;
-
-    console.log('Original Data Length:', data.length);
 
     // Asegurarnos de que estamos manejando datos de 16 bits
     if (depth === 16) {
@@ -68,16 +64,8 @@ export async function pixelate16(buffer, pixelImageUrl, blockSize, numBlocksX, n
     drawPixelatedData(pixelatedDepthData, numBlocksX, numBlocksY, width, height, imageData);
 
     ctx.putImageData(imageData, 0, 0);
-    const dataUrl = canvas.toDataURL();
+    const dataUrl = canvas.toDataURL();    
     
-    console.log('Width:', width);
-    console.log('Height:', height);
-    console.log('Depth:', depth);
-    console.log('ctype:', png.ctype);
-    console.log('Depth data:', depthData);
-    console.log('pixelatedDepthData:', pixelatedDepthData);
-    console.log('Depth Max:', Math.max(...pixelatedDepthData), 'Depth Min:', Math.min(...pixelatedDepthData));
-
     callback(dataUrl, pixelatedDepthData);
   };
 }
