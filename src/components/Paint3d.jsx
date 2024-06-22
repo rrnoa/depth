@@ -132,7 +132,7 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blo
 
     heights = escalarPulgadas(heights, maxScaleFactor, delta);
 
-    const edges = contornos(heights,xBlocks,yBlocks,0.0254);
+    //const edges = contornos(heights,xBlocks,yBlocks,0.0254);
 
 
     // Crear la geometría y material que se reutilizarán
@@ -159,7 +159,8 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blo
 
             // Si hay colores especificados, actualizar el material
             if (allColors) {
-                const color = edges[j * xBlocks + i] ? new THREE.Color(0x00ff00):new THREE.Color(`rgb(${allColors[j * xBlocks + i].join(",")})`);
+                //const color = edges[j * xBlocks + i] ? new THREE.Color(0x00ff00):new THREE.Color(`rgb(${allColors[j * xBlocks + i].join(",")})`);
+                const color = new THREE.Color(`rgb(${allColors[j * xBlocks + i].join(",")})`);
                 instancedMesh.setColorAt(instanceIndex, color);
             }
 
