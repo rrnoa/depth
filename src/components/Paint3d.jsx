@@ -2,12 +2,15 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import * as THREE from 'three';
 import GUI from 'lil-gui';
 import { configCamera, configLights, configRender, configControls } from './three-setup';
-import { escalarPulgadas, smoothHeightMap } from '../lib/Filters';
+import { contornos, escalarPulgadas, smoothHeightMap, smoothHeightMapContours, smoothHeightMapContrast } from '../lib/Filters';
 import { ImageContext } from '../context/ImageContext';
 
 export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlocks }) => {
     const {blockSize} = useContext(ImageContext);
     const [maxScaleFactor, setMaxScaleFactor] = useState(5);
+    const [applySmooth, setApplySmooth] = useState(false);
+    const [smoothEdges, setSmoothEdges] = useState(false);
+
     const [showGreen, setShowGreen] = useState(false);
     const [cutHeight, setCutHeight] = useState(0.5);
     const [delta, setDelta] = useState(0.125);
@@ -20,8 +23,10 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
             const heightCutController = guiRef.current.add({ cutHeight }, 'cutHeight', 0, 1, 0.01);
             const maxScaleFactorController = guiRef.current.add({ maxScaleFactor }, 'maxScaleFactor', 1, 50, 1);
             const deltaController = guiRef.current.add({ delta }, 'delta', [0.125, 0.25, 0.5, 1]);
+            const applySmoothController = guiRef.current.add({ applySmooth }, 'applySmooth');
+            const smoothEdgesController = guiRef.current.add({ smoothEdges }, 'smoothEdges');
             const showGreenController = guiRef.current.add({ showGreen }, 'showGreen');
-            guiRef.current.add({ applyChanges: () => applyChanges(heightCutController, maxScaleFactorController, deltaController, showGreenController) }, 'applyChanges');
+            guiRef.current.add({ applyChanges: () => applyChanges(heightCutController, maxScaleFactorController, deltaController, applySmoothController, showGreenController, smoothEdgesController) }, 'applyChanges');
         }
 
         /* const width = window.innerWidth;
@@ -33,14 +38,14 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
         const camera = configCamera(width, height);
         const directionalLight = configLights();
         const controls = configControls(camera, renderRef);
-        const ambientlight = new THREE.AmbientLight(0xffffff, 1);
-        let shadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
-        const helper = new THREE.DirectionalLightHelper(directionalLight, 5);
+        const ambientlight = new THREE.AmbientLight(0xffffff, 3);
+        //let shadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
+        //const helper = new THREE.DirectionalLightHelper(directionalLight, 5);
 
         sceneRef.background = new THREE.Color( 0xFBFBFC );
 
-        sceneRef.add(helper);
-        sceneRef.add(shadowHelper);
+        //sceneRef.add(helper);
+        //sceneRef.add(shadowHelper);
         sceneRef.add(ambientlight);
         sceneRef.add(directionalLight);
 
@@ -52,7 +57,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
 
         animate();
 
-        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, delta, showGreen);
+        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, delta, showGreen, applySmooth, smoothEdges);
 
         return () => {
             console.log("desmontando");
@@ -62,13 +67,15 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
                 guiRef.current = null;
             }
         };
-    }, [heights, cutHeight, maxScaleFactor, delta, showGreen]);
+    }, [heights, cutHeight, maxScaleFactor, delta, showGreen, applySmooth, smoothEdges]);
 
-    const applyChanges = (heightCutController, maxScaleFactorController, deltaController, showGreenController) => {
+    const applyChanges = (heightCutController, maxScaleFactorController, deltaController, applySmoothController, showGreenController, smoothEdgesController) => {
         console.log("aplicando cambios...");
         setCutHeight(heightCutController.getValue());
         setMaxScaleFactor(maxScaleFactorController.getValue());        
         setDelta(deltaController.getValue());
+        setApplySmooth(applySmoothController.getValue());
+        setSmoothEdges(smoothEdgesController.getValue());
         setShowGreen(showGreenController.getValue());
     };
 
@@ -81,7 +88,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
     );
 };
 
-const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, delta, showGreen) => {
+const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, delta, showGreen, applySmooth, smoothEdges) => {
     blockSize = blockSize * 0.0254;
     maxScaleFactor = maxScaleFactor * 0.0254;
     delta = delta * 0.0254;
@@ -117,11 +124,16 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blo
 
     console.log("despues de llevadas a pulgadas", Math.min(...heights), Math.max(...heights));
    
-    //heights = smoothHeightMap(heights, xBlocks, yBlocks, 0.0254)
+    if (applySmooth) heights = smoothHeightMap(heights, xBlocks, yBlocks, 2);
     
+    //console.log(Math.min(...heights), Math.max(...heights), heights.length, xBlocks, yBlocks);
+
+    if (smoothEdges) heights = smoothHeightMapContrast(heights, xBlocks, yBlocks, 2, 0.0254);
+
     heights = escalarPulgadas(heights, maxScaleFactor, delta);
 
-    console.log(Math.min(...heights), Math.max(...heights), heights.length, xBlocks, yBlocks);
+    const edges = contornos(heights,xBlocks,yBlocks,0.0254);
+
 
     // Crear la geometría y material que se reutilizarán
     const geometry = new THREE.BoxGeometry(blockSize, blockSize, 1);
@@ -147,7 +159,7 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blo
 
             // Si hay colores especificados, actualizar el material
             if (allColors) {
-                const color = new THREE.Color(`rgb(${allColors[j * xBlocks + i].join(",")})`);
+                const color = edges[j * xBlocks + i] ? new THREE.Color(0x00ff00):new THREE.Color(`rgb(${allColors[j * xBlocks + i].join(",")})`);
                 instancedMesh.setColorAt(instanceIndex, color);
             }
 
