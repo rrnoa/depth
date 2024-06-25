@@ -13,7 +13,7 @@ const ImageSidebar = ({ onSelectImage }) => {
     { image: '8.jpg', depthMap: '8_depth.png' },
     { image: '9.jpg', depthMap: '9_depth.png' },
     { image: '10.jpg', depthMap: '10_depth.png' },
-    { image: '11.jpg', depthMap: '11_depth.png' },
+    { image: '11.jpg', depthMap: '11_smoothed.png' },
     { image: '12.jpg', depthMap: '12_depth.png' },
     { image: '13.jpeg', depthMap: '13_depth.png' },
     { image: '14.jpg', depthMap: '14_depth.png' },
