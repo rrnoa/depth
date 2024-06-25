@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import * as THREE from 'three';
 import GUI from 'lil-gui';
 import { configCamera, configLights, configRender, configControls } from './three-setup';
-import { contornos, escalarPulgadas, smoothHeightMap, smoothHeightMapContours, smoothHeightMapContrast } from '../lib/Filters';
+import { smoothHeightMapContoursOpenCV, escalarPulgadas, smoothHeightMap, smoothHeightMapContours, smoothHeightMapContrast } from '../lib/Filters';
 import { ImageContext } from '../context/ImageContext';
+
+const radius = 5;
+const precision = 50;
 
 export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlocks }) => {
     const {blockSize} = useContext(ImageContext);
     const [maxScaleFactor, setMaxScaleFactor] = useState(5);
-    const [applySmooth, setApplySmooth] = useState(false);
     const [smoothEdges, setSmoothEdges] = useState(false);
 
     const [showGreen, setShowGreen] = useState(false);
@@ -18,15 +20,16 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
     const guiRef = useRef(null);
 
     useEffect(() => {
+
+      
         if (!guiRef.current) {
             guiRef.current = new GUI();
             const heightCutController = guiRef.current.add({ cutHeight }, 'cutHeight', 0, 1, 0.01);
             const maxScaleFactorController = guiRef.current.add({ maxScaleFactor }, 'maxScaleFactor', 1, 50, 1);
             const deltaController = guiRef.current.add({ delta }, 'delta', [0.125, 0.25, 0.5, 1]);
-            const applySmoothController = guiRef.current.add({ applySmooth }, 'applySmooth');
             const smoothEdgesController = guiRef.current.add({ smoothEdges }, 'smoothEdges');
             const showGreenController = guiRef.current.add({ showGreen }, 'showGreen');
-            guiRef.current.add({ applyChanges: () => applyChanges(heightCutController, maxScaleFactorController, deltaController, applySmoothController, showGreenController, smoothEdgesController) }, 'applyChanges');
+            guiRef.current.add({ applyChanges: () => applyChanges(heightCutController, maxScaleFactorController, deltaController, showGreenController, smoothEdgesController) }, 'applyChanges');
         }
 
         /* const width = window.innerWidth;
@@ -57,24 +60,28 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
 
         animate();
 
-        paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, delta, showGreen, applySmooth, smoothEdges);
+        let smoothHeights = smoothHeightMapContoursOpenCV(heights, xBlocks, yBlocks, radius, precision);
+              paintRelive(sceneRef, smoothHeights, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, delta, showGreen, smoothEdges);
+
+              console.log("smoothHeights",smoothHeights);
+
 
         return () => {
             console.log("desmontando");
+
             removeObjWithChildren(sceneRef);
             if (guiRef.current) {
                 guiRef.current.destroy();
                 guiRef.current = null;
             }
         };
-    }, [heights, cutHeight, maxScaleFactor, delta, showGreen, applySmooth, smoothEdges]);
+    }, [heights, cutHeight, maxScaleFactor, delta, showGreen, smoothEdges]);
 
-    const applyChanges = (heightCutController, maxScaleFactorController, deltaController, applySmoothController, showGreenController, smoothEdgesController) => {
+    const applyChanges = (heightCutController, maxScaleFactorController, deltaController, showGreenController, smoothEdgesController) => {
         console.log("aplicando cambios...");
         setCutHeight(heightCutController.getValue());
         setMaxScaleFactor(maxScaleFactorController.getValue());        
         setDelta(deltaController.getValue());
-        setApplySmooth(applySmoothController.getValue());
         setSmoothEdges(smoothEdgesController.getValue());
         setShowGreen(showGreenController.getValue());
     };
@@ -88,7 +95,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
     );
 };
 
-const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, delta, showGreen, applySmooth, smoothEdges) => {
+const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, delta, showGreen, smoothEdges) => {
     blockSize = blockSize * 0.0254;
     maxScaleFactor = maxScaleFactor * 0.0254;
     delta = delta * 0.0254;
@@ -124,11 +131,9 @@ const paintRelive = (scene, alturas, allColors, xBlocks, yBlocks, cutHeight, blo
 
     console.log("despues de llevadas a pulgadas", Math.min(...heights), Math.max(...heights));
    
-    if (applySmooth) heights = smoothHeightMap(heights, xBlocks, yBlocks, 2);
-    
     //console.log(Math.min(...heights), Math.max(...heights), heights.length, xBlocks, yBlocks);
 
-    if (smoothEdges) heights = smoothHeightMapContrast(heights, xBlocks, yBlocks, 2, 0.0254);
+    if (smoothEdges) heights = smoothHeightMapContrast(heights, xBlocks, yBlocks, 2, 0.0254/2);
 
     heights = escalarPulgadas(heights, maxScaleFactor, delta);
 

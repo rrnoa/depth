@@ -73,6 +73,7 @@ const Crop = ({ selectedImage, onPixelComplete, setAllColors, setStartX, setStar
           onCropChange={setCrop}
           onCropComplete={onCropComplete}
           onZoomChange={setZoom}
+          zoomSpeed = {0.2}
         />
         )}
       </div>
@@ -111,6 +112,7 @@ const Crop = ({ selectedImage, onPixelComplete, setAllColors, setStartX, setStar
 export default Crop;
 
 async function createImage(url) {
+  console.log("create",url)
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.addEventListener('load', () => resolve(image));

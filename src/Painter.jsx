@@ -12,6 +12,7 @@ import { ImageContext } from './context/ImageContext';
 import 'react-tabs/style/react-tabs.css';
 
 
+
 const App = () => {
   /* const { width, height, blockSize, croppedImg } = location.state || { width: 0, height: 0, blockSize: 0.5, croppedImg: null}; */
   const {blockSize} = useContext(ImageContext);
@@ -35,7 +36,6 @@ const App = () => {
   
 
   const handleSelectImage = (image, depthMap) => {
-    console.log("handleSelectImage",depthMap);
     setSelectedImage(image);
     setSelectedDepthMap(depthMap);
   };

@@ -1,3 +1,6 @@
+import { decode, encode } from 'https://cdn.skypack.dev/fast-png';
+
+
 export const escalarPulgadas = (alturas, rango, delta) => {
     const scala = [];
     for (let index = delta; index <= rango; index+=delta) {
@@ -205,6 +208,92 @@ function scaleDepthValues(depthMap, targetRanges) {
   
     return smoothedHeightMap;
   }
+
+  export function smoothHeightMapContoursOpenCV(heightMap, width, height, radius, precision) {
+    let src = cv.matFromArray(height, width, cv.CV_16UC1, heightMap);
+    let grad_x = new cv.Mat();
+    let grad_y = new cv.Mat();
+    let abs_grad_x = new cv.Mat();
+    let abs_grad_y = new cv.Mat();
+    let scaled_grad_x = new cv.Mat();
+    let scaled_grad_y = new cv.Mat();
+    let edges = new cv.Mat();
+    let mask = new cv.Mat(); // Matriz para la máscara
+    let blurred = new cv.Mat();
+    let result = new cv.Mat();
+  
+    // Aplicar el operador de Sobel con un tipo de dato de mayor precisión
+    cv.Sobel(src, grad_x, cv.CV_16S, 1, 0, 3, 1, 0, cv.BORDER_DEFAULT);
+    cv.Sobel(src, grad_y, cv.CV_16S, 0, 1, 3, 1, 0, cv.BORDER_DEFAULT);
+  
+    // Tomar los valores absolutos de los gradientes
+    cv.absdiff(grad_x, cv.Mat.zeros(grad_x.size(), cv.CV_16S), abs_grad_x);
+    cv.absdiff(grad_y, cv.Mat.zeros(grad_y.size(), cv.CV_16S), abs_grad_y);
+  
+    // Normalizar los gradientes absolutos a 8 bits
+    cv.normalize(abs_grad_x, scaled_grad_x, 0, 255, cv.NORM_MINMAX, cv.CV_8U);
+    cv.normalize(abs_grad_y, scaled_grad_y, 0, 255, cv.NORM_MINMAX, cv.CV_8U);
+  
+    // Combinar ambos gradientes
+    cv.addWeighted(scaled_grad_x, 0.5, scaled_grad_y, 0.5, 0, edges);
+  
+    // Aplicar un umbral para crear la máscara binaria de bordes
+    cv.threshold(edges, mask, precision, 255, cv.THRESH_BINARY);
+  
+    // Mostrar la máscara en el nuevo canvas
+    //cv.imshow('maskCanvas', mask);
+  
+    // Aplicar el desenfoque gaussiano a la imagen original
+    let aggressiveKernelSize = radius * 2 + 1; // Aumentar el tamaño del kernel
+    cv.GaussianBlur(src, blurred, new cv.Size(aggressiveKernelSize, aggressiveKernelSize), 0);
+  
+    // Usar la máscara para combinar la imagen original con la desenfocada
+    src.copyTo(result);
+    blurred.copyTo(result, mask);
+  
+    console.log(result.data16U);
+    //downloadSmoothedImage(result.data16U, width, height);
+  
+    const smoothEdges = [...result.data16U];
+    // Mostrar los resultados
+    //cv.imshow('edgeCanvas', edges);
+    //cv.imshow('smoothedCanvas', result);
+  
+    src.delete();
+    grad_x.delete();
+    grad_y.delete();
+    abs_grad_x.delete();
+    abs_grad_y.delete();
+    scaled_grad_x.delete();
+    scaled_grad_y.delete();
+    edges.delete();
+    mask.delete();
+    blurred.delete();
+    result.delete();
+
+    return smoothEdges;
+  }
+
+  function downloadSmoothedImage(heightMap, width, height) {
+    const png = encode({
+      width,
+      height,
+      data: new Uint16Array(heightMap),
+      channels: 1,
+      depth: 16
+    });
+    const blob = new Blob([png], { type: 'image/png' });
+    const url = URL.createObjectURL(blob);
+  
+    const downloadLink = document.createElement('a');
+    downloadLink.href = url;
+    downloadLink.download = 'smoothed_image.png'; // Nombre del archivo descargado
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink); // Eliminar el enlace después de la descarga
+  }
+  
+  
   
   
   
