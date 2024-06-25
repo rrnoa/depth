@@ -1,19 +1,20 @@
-import React, { useRef, useState } from 'react';
+import React, { useContext, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { FaUpload, FaCheck } from 'react-icons/fa';
 import pixelateImg from "./lib/pixelate";
-import { useLocation } from 'react-router-dom';
 import { pixelate16 } from './lib/pixel16';
 import './App.css';
 import { Paint3d } from './components/Paint3d';
 import Crop from './Crop';
 import ImageSidebar from './components/ImageSidebar';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import { ImageContext } from './context/ImageContext';
 import 'react-tabs/style/react-tabs.css';
 
+
 const App = () => {
-  const location = useLocation();
-  const { width, height, blockSize, croppedImg } = location.state || { width: 0, height: 0, blockSize: 1, croppedImg: null};
+  /* const { width, height, blockSize, croppedImg } = location.state || { width: 0, height: 0, blockSize: 0.5, croppedImg: null}; */
+  const {blockSize} = useContext(ImageContext);
   const sceneRef = useRef(new THREE.Scene());
   const renderRef = useRef(new THREE.WebGLRenderer({ antialias: true }));
   const [pxImg, setPxImg] = useState(null)
@@ -107,7 +108,6 @@ const App = () => {
               allColors={allColors}
               xBlocks={xBlocks}
               yBlocks={yBlocks}
-              blockSizeInInches={blockSize}
             />
           </TabPanel>
         </Tabs>
