@@ -49,13 +49,13 @@ const ImageSidebar = ({ onSelectImage }) => {
 
   return (
     <div className="image-sidebar">
-      {imagePairsLcm.map((pair, index) => (
+      {imagePairs.map((pair, index) => (
         <img
           key={index}
-          src={`/img/lcm/${pair.image}`}
+          src={`/img/${pair.image}`}
           alt={`Image ${index + 1}`}
           className="sidebar-image"
-          onClick={() => { onSelectImage(`/img/lcm/${pair.image}`, `/img/lcm/${pair.depthMap}`); }}
+          onClick={() => { onSelectImage(`/img/${pair.image}`, `/img/${pair.depthMap}`); }}
         />
       ))}
     </div>
