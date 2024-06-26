@@ -63,7 +63,7 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
         //let smoothHeights = smoothHeightMapContoursOpenCV(heights, xBlocks, yBlocks, radius, precision);
               paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, delta, showGreen, smoothEdges);
 
-              console.log("smoothHeights",smoothHeights);
+              //console.log("smoothHeights",smoothHeights);
 
 
         return () => {
