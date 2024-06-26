@@ -3,7 +3,7 @@ import Painter from './Painter';
 import ImageContextProvider from './context/ImageContext';
 
 const Main = () => {
-    useEffect(()=>{
+    /* useEffect(()=>{
       const script = document.createElement('script');
 
       script.src = "/js/opencv.js";
@@ -15,7 +15,7 @@ const Main = () => {
             };
       
           document.body.appendChild(script);   
-    },[])
+    },[]) */
     return (
       <ImageContextProvider>
         <Painter />

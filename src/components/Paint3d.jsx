@@ -60,6 +60,14 @@ export const Paint3d = ({ sceneRef, renderRef, heights, allColors, xBlocks, yBlo
 
         animate();
 
+        function countDistinctValues(array) {
+            const uniqueValues = new Set(array);
+            return uniqueValues.size;
+          }
+
+        const distinctCount = countDistinctValues(heights);
+        console.log("distintos",distinctCount);
+
         //let smoothHeights = smoothHeightMapContoursOpenCV(heights, xBlocks, yBlocks, radius, precision);
               paintRelive(sceneRef, heights, allColors, xBlocks, yBlocks, cutHeight, blockSize, maxScaleFactor, delta, showGreen, smoothEdges);
 
