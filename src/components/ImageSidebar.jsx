@@ -42,6 +42,7 @@ const ImageSidebar = ({ onSelectImage }) => {
     { image: 'wave.jpeg', depthMap: 'wave_depth_16bit.png' },
     { image: 'surfer.jpeg', depthMap: 'wave_depth_16bit.png' },
     { image: 'pumpkins.jpg', depthMap: 'pumpkins_depth_16bit.png' },
+    { image: 'mona-lisa-67506_1920.jpg', depthMap: 'mona-lisa-67506_1920_depth_16bit.png' },
 
   ];
 
